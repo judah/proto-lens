@@ -8,7 +8,7 @@ set -euo pipefail
 # give them to us in the right order.)
 PACKAGES="
     proto-lens
-    proto-lens-protoc
+    proto-lens-setup
     proto-lens-arbitrary
     proto-lens-combinators
     proto-lens-optparse

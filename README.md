@@ -30,7 +30,12 @@ First, edit the `.cabal` file of your project to:
 * List the generated modules (e.g. `Proto.Foo.Bar`) in `exposed-modules`
   or `other-modules` of the rule(s) that use them (e.g. the library or
   executables).
-* Add `proto-lens-protoc` to the build-depends of those rules.
+* Add `proto-lens-setup` to the dependencies of your package.  There are two ways:
+    * For `Cabal>=1.24` (e.g., `ghc>=8.0`), add a `custom-setup` clause.
+    Note that this approach doesn't work yet with stack
+    ([#2094](https://github.com/commercialhaskell/stack/issues/2094)).
+    * For compatibility with `stack` and older versions of `Cabal`, add
+      `proto-lens-setup` to the `build-depends` field.
 
 For example:
 
@@ -40,13 +45,25 @@ For example:
     ...
     library
         exposed-modules: Proto.Foo.Bar
-        build-depends: proto-lens-protoc, ...
+        build-depends: proto-lens-setup, ...
+
+Or with `Cabal>=1.24`:
+
+    ...
+    build-type: Custom
+    extra-source-files: src/foo/bar.proto
+    ...
+    custom-setup
+        setup-depends: base, proto-lens-setup
+
+    library
+        exposed-modules: Proto.Foo.Bar
+
 
 Next, write a `Setup.hs` file that uses `Data.ProtoLens.Setup` and specifies the
 directory containing the `.proto` files.  For example:
 
     import Data.ProtoLens.Setup
-
     main = defaultMainGeneratingProtos "src"
 
 Then, when you run `cabal build` or `stack build`, Cabal will generate a Haskell
@@ -102,6 +119,26 @@ will generate the haskell files `Proto/Project/{Foo,Bar}.hs`.
 Due to [stack issue #1891](https://github.com/commercialhaskell/stack/issues/1891),
 if you only change the .proto files then stack won't rebuild the package (that
 is, it won't regenerate the `Proto.*` modules).
+
+## Ambiguous interface
+If you get an error like:
+
+    dist/setup/setup.hs:7:1: error:
+    Ambiguous interface for ‘Data.ProtoLens.Setup’:
+      it was found in multiple packages:
+      proto-lens-setup-0.1.0.1 proto-lens-protoc-0.1.0.1
+
+This is an unfortunate interaction between `Cabal>=1.24` and the old
+`proto-lens-protoc` library, which is not used anymore.  (More specifically,
+the library originally in the `proto-lens-protoc` package was moved to
+`proto-lens-setup`, and the executable was moved to the `proto-lens` package).
+
+You can fix it by either using a `custom-setup` clause as described above, or
+by running
+
+    ghc-pkg unregister proto-lens-protoc --force
+
+and reinstalling any Cabal packages that get broken as a result.
 
 ## Linking errors
 Due to the limitations of how we can specify the dependencies of Setup

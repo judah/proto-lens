@@ -20,8 +20,7 @@ library
   hs-source-dirs: src
   exposed-modules:     Data.ProtoLens.Combinators
   build-depends:  proto-lens == 0.1.*
-                -- Used by the custom Setup script (for the test-suite).
-                , proto-lens-protoc == 0.1.*
+                , proto-lens-setup == 0.1.*
                 , base >= 4.8 && < 4.10
                 , data-default-class == 0.0.*
                 , lens-family == 1.2.*
@@ -35,8 +34,10 @@ Test-Suite combinators_test
   other-modules: Proto.Combinators
   build-depends: HUnit
                , base
+               , bytestring
+               , containers
                , lens-family
+               , proto-lens
                , proto-lens-combinators
-               , proto-lens-protoc
                , test-framework
                , test-framework-hunit
