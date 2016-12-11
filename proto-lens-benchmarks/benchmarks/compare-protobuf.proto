@@ -1,0 +1,34 @@
+syntax = "proto2";
+
+package data;
+
+message Burst {
+    repeated bytes frames = 1;
+}
+
+message A {
+    required float w = 1;
+    required float x = 2;
+    required float y = 3;
+    required float z = 4;
+}
+
+message B {
+    // TODO: compare against:
+    // map<string, A> as = 1;
+    message Entry {
+        required string key = 1;
+        required A value = 2;
+    }
+    repeated Entry as = 1;
+}
+
+message C {
+    // TODO: compare against:
+    // map<string, B> bs = 1;
+    message Entry {
+        required string key = 1;
+        required B value = 2;
+    }
+    repeated Entry bs = 1;
+}

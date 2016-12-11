@@ -73,3 +73,22 @@ Benchmark unused-fields
                  , proto-lens
                  , proto-lens-benchmarks
                  , proto-lens-protoc
+
+Benchmark compare-protobuf
+    default-language: Haskell2010
+    type:             exitcode-stdio-1.0
+    main-is:          compare-protobuf.hs
+    other-modules:    Proto.CompareProtobuf
+    ghc-options:      -O2 -rtsopts
+    build-depends: base
+                 , bytestring
+                 , containers
+                 , criterion
+                 , lens-family
+                 , deepseq
+                 , proto-lens
+                 , proto-lens-protoc
+                 , text
+    hs-source-dirs:   benchmarks
+
+
