@@ -91,13 +91,15 @@ Test-Suite oneof_test
   main-is: oneof_test.hs
   hs-source-dirs: tests
   other-modules: Proto.Oneof
-  build-depends: base
+  build-depends: HUnit
+               , base
                , bytestring
                , lens-family
                , proto-lens
                , proto-lens-protoc
                , proto-lens-tests
                , test-framework
+               , test-framework-hunit
 
 Test-Suite optional_test
   default-language: Haskell2010
