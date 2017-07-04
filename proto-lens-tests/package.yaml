@@ -1,0 +1,168 @@
+name: proto-lens-tests
+synopsis: Unit tests for proto-lens
+description: This package contains a set of test suites for proto-lens.
+github: google/proto-lens
+license: BSD3
+author: Judah Jacobson
+maintainer: proto-lens@googlegroups.com
+copyright: Google Inc.
+category: Data
+extra-source-files: tests/*.proto
+
+custom-setup:
+  dependencies:
+    - base
+    - Cabal
+    - proto-lens-protoc
+
+# Avoid specifying version bounds for this package, since it's only used for
+# testing and shouldn't be uploaded to Hackage/Stackage.
+dependencies:
+  - base
+  - bytestring
+  - data-default-class
+  - HUnit
+  - lens-family-core
+  - lens-family
+  - pretty
+  - proto-lens
+  - proto-lens-protoc
+  - text
+  - test-framework
+  - test-framework-hunit
+
+
+library:
+  source-dirs: src
+  exposed-modules:
+    - Data.ProtoLens.TestUtil
+  dependencies:
+    - proto-lens-arbitrary
+    # TODO: this is necessary to list explicitly here since when
+    # --enable-tests is off, Cabal won't see the test-suite
+    # `package-deps_test` that lists it, but we'll still try to
+    # compile tests/package-deps.proto (since it's listed in
+    # extra-source-files regardless).
+    - proto-lens-tests-dep
+    - test-framework-quickcheck2
+
+tests:
+  canonical_test:
+    source-dirs: tests
+    main: canonical_test.hs
+    other-modules: Proto.Canonical
+    dependencies:
+      - proto-lens-tests
+
+  group_test:
+    source-dirs: tests
+    main: group_test.hs
+    other-modules: Proto.Group
+    dependencies:
+      - proto-lens-tests
+
+  map_test:
+    source-dirs: tests
+    main: map_test.hs
+    other-modules: Proto.Map
+    dependencies:
+      - proto-lens-tests
+
+  oneof_test:
+    source-dirs: tests
+    main: oneof_test.hs
+    other-modules: Proto.Oneof
+    dependencies:
+      - proto-lens-tests
+
+  optional_test:
+    source-dirs: tests
+    main: optional_test.hs
+    other-modules: Proto.Optional
+    dependencies:
+      - proto-lens-tests
+
+  proto3_test:
+    source-dirs: tests
+    main: proto3_test.hs
+    other-modules: Proto.Proto3
+    dependencies:
+      - proto-lens-tests
+
+  repeated_test:
+    source-dirs: tests
+    main: repeated_test.hs
+    other-modules: Proto.Repeated
+    dependencies:
+      - proto-lens-tests
+
+  text_format_test:
+    source-dirs: tests
+    main: text_format_test.hs
+    other-modules: Proto.TextFormat
+    dependencies:
+      - proto-lens-tests
+
+  enum_test:
+    source-dirs: tests
+    main: enum_test.hs
+    other-modules: Proto.Enum
+    dependencies:
+      - proto-lens-tests
+    # Check that the code for enum aliases and the pattern-match in the
+    # test (aliasTest) are both warning-clean.
+    ghc-options: [-fwarn-overlapping-patterns, -fwarn-incomplete-patterns, -Werror]
+
+  names_test:
+    source-dirs: tests
+    main: names_test.hs
+    other-modules: Proto.Names
+    dependencies:
+      - proto-lens-tests
+
+  no_package_test:
+    source-dirs: tests
+    main: no_package_test.hs
+    other-modules: Proto.NoPackage
+    dependencies:
+      - proto-lens-tests
+
+  packed_test:
+    source-dirs: tests
+    main: packed_test.hs
+    other-modules: Proto.Packed
+    dependencies:
+      - proto-lens-tests
+
+  raw_fields_test:
+    source-dirs: tests
+    main: raw_fields_test.hs
+    other-modules: Proto.RawFields
+    dependencies:
+      - proto-lens-tests
+
+  required_test:
+    source-dirs: tests
+    main: required_test.hs
+    other-modules: Proto.Required
+    dependencies:
+      - proto-lens-tests
+
+  labels_test:
+    when:
+      - condition: impl(ghc < 8.0.1)
+        buildable: False
+    source-dirs: tests
+    main: labels_test.hs
+    other-modules: Proto.Canonical
+    dependencies:
+      - lens-labels
+      - proto-lens-tests
+
+  package-deps_test:
+    source-dirs: tests
+    main: package-deps_test.hs
+    other-modules: Proto.PackageDeps
+    dependencies:
+      - proto-lens-tests
+      - proto-lens-tests-dep
