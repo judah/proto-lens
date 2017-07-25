@@ -20,12 +20,17 @@ extra-source-files:
     proto-src/google/protobuf/wrappers.proto
 
 custom-setup
-  setup-depends: base >= 4.8 && < 4.10
+  setup-depends: base >= 4.8 && < 4.11
                , Cabal
                , proto-lens-protoc == 0.2.*
 
 library
-  exposed-modules:     Proto.Google.Protobuf.Any
-                       Proto.Google.Protobuf.Duration
-                       Proto.Google.Protobuf.Wrappers
-  build-depends: proto-lens-protoc == 0.2.*
+  hs-source-dirs:     src
+  exposed-modules:    Proto.Google.Protobuf.Any
+                      Proto.Google.Protobuf.Duration
+                      Proto.Google.Protobuf.Wrappers
+  build-depends: base >= 4.8 && < 4.11
+               , lens-family
+               , proto-lens >= 0.2.2.0 && < 0.3
+               , proto-lens-protoc == 0.2.*
+               , text == 1.2.*
