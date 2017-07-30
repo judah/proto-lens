@@ -85,6 +85,22 @@ Test-Suite map_test
                , proto-lens-tests
                , test-framework
 
+Test-Suite oneof_test
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  main-is: oneof_test.hs
+  hs-source-dirs: tests
+  other-modules: Proto.Oneof
+  build-depends: base
+               , bytestring
+               , lens-family
+               , HUnit
+               , proto-lens
+               , proto-lens-protoc
+               , proto-lens-tests
+               , test-framework
+               , test-framework-hunit
+
 Test-Suite optional_test
   default-language: Haskell2010
   type: exitcode-stdio-1.0
@@ -162,10 +178,12 @@ Test-Suite enum_test
                , lens-family
                , pretty
                , proto-lens
+               , proto-lens-arbitrary
                , proto-lens-protoc
                , proto-lens-tests
                , test-framework
                , test-framework-hunit
+               , test-framework-quickcheck2
 
 Test-Suite names_test
   default-language: Haskell2010
@@ -275,3 +293,22 @@ Test-Suite package-deps_test
                , proto-lens-protoc
                , proto-lens-tests
                , test-framework-hunit
+
+Test-Suite any_test
+  default-language: Haskell2010
+  type: exitcode-stdio-1.0
+  main-is: any_test.hs
+  hs-source-dirs: tests
+  other-modules: Proto.Any
+  build-depends: base
+               , HUnit
+               , lens-family
+               , proto-lens
+               , proto-lens-arbitrary
+               , proto-lens-protobuf-types
+               , proto-lens-protoc
+               , proto-lens-tests
+               , QuickCheck
+               , test-framework
+               , test-framework-hunit
+               , text
