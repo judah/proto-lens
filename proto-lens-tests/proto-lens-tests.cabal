@@ -312,3 +312,18 @@ Test-Suite any_test
                , test-framework
                , test-framework-hunit
                , text
+
+-- Not a test-suite, since it fails; we don't strictly obey the lens laws.
+executable lens-laws
+  default-language: Haskell2010
+  main-is: lens-laws.hs
+  hs-source-dirs: tests
+  other-modules: Proto.LensLaws
+  build-depends: base
+               , proto-lens
+               , proto-lens-arbitrary
+               , lens-family
+               , proto-lens-protoc
+               , QuickCheck
+               , test-framework
+               , test-framework-quickcheck2
