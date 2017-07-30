@@ -41,12 +41,11 @@ do
         cabal clean
         cabal install --enable-tests --only-dependencies
         cabal configure --enable-tests
-        cabal build
         cabal sdist
         SRC_TGZ=$(cabal info . | awk '{print $2 ".tar.gz"; exit}')
         cd dist
         if [ -f "$SRC_TGZ" ]; then
-            cabal install --force-reinstalls "$SRC_TGZ"
+            cabal install -O0 --force-reinstalls "$SRC_TGZ"
         else
             echo "expected '$SRC_TGZ' not found"
             exit 1
@@ -59,4 +58,4 @@ cd proto-lens-tests
 # Get rid of the previous dist/autogen to make sure "cabal repl" rebuilds it.
 cabal clean  # Get rid of previous dist/autogen
 cabal configure --enable-tests
-printf "main\n:quit\n" | cabal repl canonical_test
+cabal test canonical_test

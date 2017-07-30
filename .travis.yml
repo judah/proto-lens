@@ -10,6 +10,7 @@ cache:
   - $HOME/.ghc
   - $HOME/.stack
   - $HOME/.cabal
+  - .stack-work
 
 matrix:
   include:
@@ -59,7 +60,7 @@ script:
   - case "$BUILD" in
       stack)
         STACK_ARGS=(--haddock --no-haddock-deps --ghc-options="-Wall -Werror");
-        $STACK build "${STACK_ARGS[@]}" && $STACK test "${STACK_ARGS[@]}";;
+        $STACK build --no-terminal --fast "${STACK_ARGS[@]}" && $STACK test --no-terminal --fast "${STACK_ARGS[@]}";;
       cabal)
         ./travis-cabal.sh;;
     esac
