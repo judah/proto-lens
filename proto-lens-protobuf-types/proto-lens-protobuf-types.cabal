@@ -1,5 +1,5 @@
 name:                proto-lens-protobuf-types
-version:             0.2.1.0
+version:             0.2.1.1
 synopsis:            Basic protocol buffer message types.
 description:
     This package provides bindings standard protocol message types,
@@ -31,6 +31,6 @@ library
                       Proto.Google.Protobuf.Wrappers
   build-depends: base >= 4.8 && < 4.11
                , lens-family
-               , proto-lens >= 0.2.2.0 && < 0.3
+               , proto-lens == 0.2.*
                , proto-lens-protoc == 0.2.*
                , text == 1.2.*
