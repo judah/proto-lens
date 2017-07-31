@@ -1,6 +1,12 @@
 # Changelog for `proto-lens-protoc`
 
 ## Unreleased changes
+- Improve the semantics of oneof fields, and add a lens to access the
+  underlying sum type.
+- CamelCase the names of Haskell message types.
+
+## v0.2.2.1
+Revert the oneof field semantics and CamelCasing of message type names.
 
 ## v0.2.2.0
 - Bump the dependency on `base` to support `ghc-8.2.1` and `Cabal-2.0`.
