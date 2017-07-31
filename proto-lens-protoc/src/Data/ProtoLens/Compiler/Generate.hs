@@ -20,7 +20,6 @@ import qualified Data.Foldable as F
 import qualified Data.List as List
 import qualified Data.Map as Map
 import Data.Maybe (isNothing)
-import Data.Monoid ((<>))
 import Data.Ord (comparing)
 import qualified Data.Set as Set
 import Data.String (fromString)
@@ -94,17 +93,17 @@ generateModule modName imports syntaxType modifyImport definitions importedEnv
               ]
             ++ map importSimple imports)
           (concatMap generateDecls (Map.toList definitions)
-           ++ concatMap generateFieldDecls allLensNames)
+           ++ concatMap generateFieldDecls allFieldNames)
   where
     env = Map.union (unqualifyEnv definitions) importedEnv
     generateDecls (protoName, Message m)
         = generateMessageDecls syntaxType env (stripDotPrefix protoName) m
     generateDecls (_, Enum e) = generateEnumDecls e
-    allLensNames = F.toList $ Set.fromList
-        [ lensSymbol inst
+    allFieldNames = F.toList $ Set.fromList
+        [ fieldSymbol i
         | Message m <- Map.elems definitions
-        , info <- allMessageFields syntaxType env m
-        , inst <- recordFieldLenses info
+        , f <- messageFields m
+        , i <- fieldInstances (lensInfo syntaxType env f)
         ]
     -- The Env uses the convention that Message names are prefixed with '.'
     -- (since that's how the FileDescriptorProto refers to them).
@@ -112,11 +111,6 @@ generateModule modName imports syntaxType modifyImport definitions importedEnv
     stripDotPrefix s
         | Just ('.', s') <- T.uncons s = s'
         | otherwise = s
-
-allMessageFields :: SyntaxType -> Env QName -> MessageInfo Name -> [RecordField]
-allMessageFields syntaxType env info =
-    map (plainRecordField syntaxType env) (messageFields info)
-        ++ map (oneofRecordField env) (messageOneofFields info)
 
 importSimple :: ModuleName -> ImportDecl ()
 importSimple m = ImportDecl
@@ -146,8 +140,11 @@ generateMessageDecls syntaxType env protoName info =
     -- }
     [ dataDecl dataName
         [recDecl dataName $
-                  [ (recordFieldName f, recordFieldType f)
-                  | f <- allFields
+                  [ (recordFieldName f, internalType (lensInfo syntaxType env f))
+                  | f@(FieldInfo _ _ _ Nothing) <- fields
+                  ] ++
+                  [ (ooFieldName, "Prelude.Maybe" @@ (fromString ooTypeName))
+                  | OneofInfo ooTypeName ooFieldName <- oneofFields
                   ]
         ]
         ["Prelude.Show", "Prelude.Eq", "Prelude.Ord"]
@@ -162,15 +159,15 @@ generateMessageDecls syntaxType env protoName info =
     --        }
     -- haskell: data Foo'Bar = Foo'Bar'c !Prelude.Float
     --                       | Foo'Bar's !Sub
-    [ dataDecl (oneofTypeName oneofInfo)
-      [ conDecl consName [hsFieldType env $ fieldDescriptor f]
-      | c <- oneofCases oneofInfo
-      , let f = caseField c
-      , let consName = caseConstructorName c
+    [ dataDecl (fromString ooTypeName)
+      [ conDecl consName [internalType (lensInfo syntaxType env f)]
+      | f @ (FieldInfo _ _ desc (Just (OneofFieldInfo consName _))) <- fields
+      , elem idx (desc ^. maybe'oneofIndex)
       ]
       ["Prelude.Show", "Prelude.Eq", "Prelude.Ord"]
-    | oneofInfo <- messageOneofFields info
+    | (OneofInfo ooTypeName _, idx) <- zip oneofFields [0..]
     ] ++
+
 
     -- type instance (Functor f, a ~ Baz, b ~ Baz)
     --     => HasLens "foo" f Bar Bar a b where
@@ -180,14 +177,11 @@ generateMessageDecls syntaxType env protoName info =
     [ instDecl [equalP "a" t, equalP "b" t, classA "Prelude.Functor" ["f"]]
         ("Lens.Labels.HasLens" `ihApp`
             [sym, "f", dataType, dataType, "a", "b"])
-            [[match "lensOf" [pWildCard] $
-                "Prelude.."
-                    @@ rawFieldAccessor (unQual $ recordFieldName li)
-                    @@ lensExp i]]
-    | li <- allFields
-    , i <- recordFieldLenses li
-    , let t = lensFieldType i
-    , let sym = promoteSymbol $ lensSymbol i
+            [[match "lensOf" [pWildCard] $ fieldAccessor i]]
+    | f <- fields
+    , i <- fieldInstances (lensInfo syntaxType env f)
+    , let t = fieldTypeInstance i
+    , let sym = tyPromotedString $ fieldSymbol i
     ]
     ++
     -- instance Data.Default.Class.Default Bar where
@@ -196,13 +190,12 @@ generateMessageDecls syntaxType env protoName info =
         [
             [ match "def" []
                 $ recConstr (unQual dataName) $
-                      [ fieldUpdate (unQual $ haskellRecordFieldName $ plainFieldName f)
+                      [ fieldUpdate (unQual $ recordFieldName f)
                             (hsFieldDefault syntaxType env (fieldDescriptor f))
-                      | f <- messageFields info
+                      | f@(FieldInfo _ _ _ Nothing) <- fields
                       ] ++
-                      [ fieldUpdate (unQual $ haskellRecordFieldName $ oneofFieldName o)
-                            "Prelude.Nothing"
-                      | o <- messageOneofFields info
+                      [ fieldUpdate (unQual $ fieldName) "Prelude.Nothing"
+                      | OneofInfo _ fieldName <- oneofFields
                       ]
             ]
         ]
@@ -212,8 +205,7 @@ generateMessageDecls syntaxType env protoName info =
     ]
   where
     dataType = tyCon $ unQual dataName
-    dataName = messageName info
-    allFields = allMessageFields syntaxType env info
+    MessageInfo { messageName = dataName, messageFields = fields, messageOneofFields = oneofFields } = info
 
 generateEnumDecls :: EnumInfo Name -> [Decl]
 generateEnumDecls info =
@@ -355,7 +347,7 @@ generateEnumDecls info =
     errorMessage = "toEnum: unknown value for enum " ++ unpack (ed ^. name)
                       ++ ": "
 
-generateFieldDecls :: Symbol -> [Decl]
+generateFieldDecls :: String -> [Decl]
 generateFieldDecls xStr =
     -- foo :: forall x f s t a b
     --        . HasLens x f s t a b => LensLike f s t a b
@@ -372,151 +364,108 @@ generateFieldDecls xStr =
               ]
     ]
   where
-    x = nameFromSymbol xStr
-    xSym = promoteSymbol xStr
+    x = fromString xStr
+    xSym = tyPromotedString xStr
 
 ------------------------------------------
 
--- | An individual field of the Haskell type corresponding to a proto message.
-data RecordField = RecordField
-    { recordFieldName :: Name  -- ^ The Haskell name of this field (unique
-                               --   within the module).
-    , recordFieldType :: Type  -- ^ Internal type in the record
-    , recordFieldLenses :: [LensInstance]
-        -- ^ All of the (overloaded) lenses accessing this record field.
+-- | The Haskell types and lenses for an individual field of a message.
+-- This is used to generate both the data record Decl and the instances of
+-- HasField.
+data LensInfo = LensInfo
+    { internalType :: Type  -- ^ Internal type in the record
+    , fieldInstances :: [FieldInstanceInfo]  -- ^ All instances of Field/HasField
     }
 
--- | An instance of HasLens for a particualr field.
-data LensInstance = LensInstance
-    { lensSymbol :: Symbol
-          -- ^ The overloaded name for this lens.
-    , lensFieldType :: Type
-          -- ^ The type pointed to from this lens.
-    , lensExp :: Exp
-        -- ^ A lens from the recordFieldType to the lensFieldType; i.e.,
-        -- from how it's actually stored in the Haskell record to how the
-        -- lens views it.
+data FieldInstanceInfo = FieldInstanceInfo
+    { fieldSymbol :: String      -- ^ The name of the Symbol corresponding to
+                                 --   this field.
+    , fieldTypeInstance :: Type  -- ^ The type instance for Field, i.e.,
+                                 --     type instance Field "foo" Bar = ...
+    , fieldAccessor :: Exp       -- ^ The value of the "field" lens for this
+                                 --   field, i.e.,
+                                 --     field _ = ...
     }
 
 -- | Compile information about the record field type and type/class instances
 -- for this particular field.
---
--- Used for "plain" record fields that are not part of a oneof.
-plainRecordField :: SyntaxType -> Env QName -> FieldInfo -> RecordField
-plainRecordField syntaxType env f = case fd ^. label of
+lensInfo :: SyntaxType -> Env QName -> FieldInfo -> LensInfo
+lensInfo syntaxType env f = case fd ^. label of
     -- data Foo = Foo { _Foo_bar :: Bar }
     -- type instance Field "bar" Foo = Bar
-    FieldDescriptorProto'LABEL_REQUIRED
-        -> recordField baseType
-                  [LensInstance
-                      { lensSymbol = baseName
-                      , lensFieldType = baseType
-                      , lensExp = rawAccessor
+    FieldDescriptorProto'LABEL_REQUIRED -> LensInfo baseType
+                  [FieldInstanceInfo
+                      { fieldSymbol = baseName
+                      , fieldTypeInstance = baseType
+                      , fieldAccessor = rawAccessor
                       }]
     FieldDescriptorProto'LABEL_OPTIONAL
         | isDefaultingOptional syntaxType fd
-              -> recordField baseType
-                    [LensInstance
-                      { lensSymbol = baseName
-                      , lensFieldType = baseType
-                      , lensExp = rawAccessor
+              -> LensInfo baseType
+                    [FieldInstanceInfo
+                      { fieldSymbol = baseName
+                      , fieldTypeInstance = baseType
+                      , fieldAccessor = rawAccessor
                       }]
-    -- data Foo = Foo { _Foo_bar :: Maybe Bar }
-    -- type instance Field "bar" Foo = Bar
-    -- type instance Field "maybe'bar" Foo = Maybe Bar
-        | otherwise ->
-              recordField maybeType
-                  [LensInstance
-                      { lensSymbol = baseName
-                      , lensFieldType = baseType
-                      , lensExp = maybeAccessor
+        | Just info <- oneofFieldInfo f
+              -> LensInfo baseType
+                    [FieldInstanceInfo
+                      { fieldSymbol = baseName
+                      , fieldTypeInstance = baseType
+                      , fieldAccessor = maybeAccessor
                       }
-                  , LensInstance
-                      { lensSymbol = "maybe'" <> baseName
-                      , lensFieldType = maybeType
-                      , lensExp = rawAccessor
+                    , FieldInstanceInfo
+                      { fieldSymbol = maybeName
+                      , fieldTypeInstance = "Prelude.Maybe" @@ baseType
+                      , fieldAccessor = oneofFieldAccessor info
                       }
-                  ]
+                    ]
     FieldDescriptorProto'LABEL_REPEATED
         -- data Foo = Foo { _Foo_bar :: Map Bar Baz }
         -- type instance Field "foo" Foo = Map Bar Baz
         | Just (k,v) <- getMapFields env fd -> let
             mapType = "Data.Map.Map" @@ hsFieldType env (fieldDescriptor k)
                                      @@ hsFieldType env (fieldDescriptor v)
-            in recordField mapType
-                  [LensInstance
-                       { lensSymbol = baseName
-                       , lensFieldType = mapType
-                       , lensExp = rawAccessor
+            in LensInfo mapType
+                  [FieldInstanceInfo
+                       { fieldSymbol = baseName
+                       , fieldTypeInstance = mapType
+                       , fieldAccessor = rawAccessor
                        }]
         -- data Foo = Foo { _Foo_bar :: [Bar] }
         -- type instance Field "bar" Foo = [Bar]
-        | otherwise -> recordField listType
-                  [LensInstance
-                      { lensSymbol = baseName
-                      , lensFieldType = listType
-                      , lensExp = rawAccessor
+        | otherwise -> LensInfo listType
+                  [FieldInstanceInfo
+                      { fieldSymbol = baseName
+                      , fieldTypeInstance = listType
+                      , fieldAccessor = rawAccessor
                       }]
+    -- data Foo = Foo { _Foo_bar :: Maybe Bar }
+    -- type instance Field "bar" Foo = Bar
+    -- type instance Field "maybe'bar" Foo = Maybe Bar
+    FieldDescriptorProto'LABEL_OPTIONAL -> LensInfo maybeType
+                  [FieldInstanceInfo
+                      { fieldSymbol = baseName
+                      , fieldTypeInstance = baseType
+                      , fieldAccessor = maybeAccessor
+                      }
+                  , FieldInstanceInfo
+                      { fieldSymbol = maybeName
+                      , fieldTypeInstance = "Prelude.Maybe" @@ baseType
+                      , fieldAccessor = rawAccessor
+                      }
+                  ]
   where
-    recordField = RecordField (haskellRecordFieldName $ plainFieldName f)
-    baseName = overloadedName $ plainFieldName f
+    baseName = overloadedField f
     fd = fieldDescriptor f
     baseType = hsFieldType env fd
-    maybeType = "Prelude.Maybe" @@ baseType
     listType = tyList baseType
-    rawAccessor = "Prelude.id"
-    maybeAccessor = "Data.ProtoLens.maybeLens"
-                          @@ hsFieldValueDefault env fd
-
-
-oneofRecordField :: Env QName -> OneofInfo -> RecordField
-oneofRecordField env oneofInfo
-    = RecordField
-        { recordFieldName = haskellRecordFieldName $ oneofFieldName oneofInfo
-        , recordFieldType =
-              "Prelude.Maybe" @@ tyCon (unQual $ oneofTypeName oneofInfo)
-        , recordFieldLenses = lenses
-        }
-  where
-    lenses =
-        -- Only generate a "maybe" version of this lens,
-        -- since oneofs don't have a notion of a "default" case.
-        -- data Foo = Foo { _Foo'bar = Maybe Foo'Bar }
-        -- type instance Field "maybe'bar" Foo = Maybe Foo'Bar
-        [LensInstance
-          { lensSymbol = "maybe'" <> overloadedName
-                                        (oneofFieldName oneofInfo)
-          , lensFieldType =
-                "Prelude.Maybe" @@ tyCon (unQual $ oneofTypeName oneofInfo)
-          , lensExp = "Prelude.id"
-          }
-         ]
-         ++ concat
-          -- Generate the same lenses for each sub-field of the oneof
-          -- as if they were proto2 optional fields.
-          -- type instance Field "bar" Foo = Bar
-          -- type instance Field "maybe'bar" Foo = Maybe Bar
-            [ [ LensInstance
-                { lensSymbol = maybeName
-                , lensFieldType = "Prelude.Maybe" @@ baseType
-                , lensExp = oneofFieldAccessor c
-                }
-              , LensInstance
-                { lensSymbol = baseName
-                , lensFieldType = baseType
-                , lensExp = "Prelude.."
-                                @@ oneofFieldAccessor c
-                                @@ ("Data.ProtoLens.maybeLens"
-                                              @@ hsFieldValueDefault env
-                                                    (fieldDescriptor f))
-                }
-              ]
-            | c <- oneofCases oneofInfo
-            , let f = caseField c
-            , let baseName = overloadedName $ plainFieldName f
-            , let baseType = hsFieldType env $ fieldDescriptor f
-            , let maybeName = "maybe'" <> baseName
-            ]
+    maybeType = "Prelude.Maybe" @@ baseType
+    maybeName = "maybe'" ++ baseName
+    maybeAccessor = "Prelude.." @@ fromString maybeName
+                        @@ ("Data.ProtoLens.maybeLens"
+                                @@ hsFieldValueDefault env fd)
+    rawAccessor = rawFieldAccessor $ unQual $ recordFieldName f
 
 -- Get the key/value types of this type, if it is really a map.
 getMapFields :: Env QName -> FieldDescriptorProto
@@ -630,37 +579,29 @@ rawFieldAccessor f = "Lens.Family2.Unchecked.lens" @@ getter @@ setter
     setter = lambda ["x__", "y__"]
                     $ recUpdate "x__" [fieldUpdate f "y__"]
 
--- | A lens that maps from a oneof sum type to one of its individual cases.
---
--- For example, with
---     data Foo = Bar Int32 | Baz Int64
---
--- this will generate a lens of type @Lens' (Maybe Foo) (Maybe Int32)@.
---
--- (Recall that oneofs are stored in a proto message as @Maybe Foo@, where
--- 'Nothing' means that it's either set to an unknown value or unset.)
+-- | A lens to access a oneof field.
 --
 -- lens
---   (\ x__ -> case x__ of
---       Prelude.Just (Foo'c x__val) -> Prelude.Just x__val
+--   (\ x__ -> case _Foo'bar x__ of
+--       Prelude.Just (Foo'Bar'c x__val) -> Prelude.Just x__val
 --       otherwise -> Prelude.Nothing)
---   (\ _ y__ -> fmap Foo'c y__
-oneofFieldAccessor :: OneofCase -> Exp
-oneofFieldAccessor o
-        = "Lens.Family2.Unchecked.lens" @@ getter @@ setter
-  where
-    consName = caseConstructorName o
-    getter = lambda ["x__"] $
-        case' "x__"
-            [ alt
-                (pApp "Prelude.Just" [pApp (unQual consName) ["x__val"]])
-                ("Prelude.Just" @@ "x__val")
-            , alt
-                "_otherwise"
-                "Prelude.Nothing"
-            ]
-    setter = lambda ["_", "y__"]
-                $ "Prelude.fmap" @@ con (unQual consName) @@ "y__"
+--   (\ x__ y__ -> x__{_Foo'bar = Prelude.fmap Foo'Bar'c y__})
+oneofFieldAccessor :: OneofFieldInfo -> Exp
+oneofFieldAccessor (OneofFieldInfo consName encName) =
+        "Lens.Family2.Unchecked.lens" @@ getter @@ setter
+      where
+        getter = lambda ["x__"] $
+            case' (var (unQual encName) @@ var "x__")
+                [ alt
+                    (pApp "Prelude.Just" [pApp (unQual consName) [pVar "x__val"]])
+                    ("Prelude.Just" @@ "x__val")
+                , alt
+                    (pVar "_otherwise")
+                    (con "Prelude.Nothing")
+                ]
+        setter = lambda ["x__", "y__"]
+                    $ recUpdate "x__" [fieldUpdate (unQual encName)
+                    $ ("Prelude.fmap" @@ (con $ unQual consName) @@ "y__")]
 
 descriptorExpr :: SyntaxType -> Env QName -> T.Text -> MessageInfo Name -> Exp
 descriptorExpr syntaxType env protoName m
@@ -693,16 +634,15 @@ descriptorExpr syntaxType env protoName m
               , let t = stringExp $ T.unpack $ textFormatFieldName env
                                                     (fieldDescriptor f)
               ]
-    fieldDescriptorVar = var . unQual . fieldDescriptorName
+    fieldDescriptorVar = fromString . fieldDescriptorName
     fieldDescriptorName f
-        = nameFromSymbol $ overloadedName (plainFieldName f) <> "__field_descriptor"
+        = fromString $ overloadedField f ++ "__field_descriptor"
     fieldDescriptorVarBind n f
         = funBind
-              [match (fieldDescriptorName f) []
+              [match (fromString $ fieldDescriptorName f) []
                   $ fieldDescriptorExpr syntaxType env n f
               ]
     fields = messageFields m
-                ++ (messageOneofFields m >>= fmap caseField . oneofCases)
 
 -- | Get the name of the field when used in a text format proto. Groups are
 -- special because their text format field name is the name of their type,
@@ -750,21 +690,18 @@ fieldAccessorExpr syntaxType env f = accessorCon @@ var (unQual hsFieldName)
           FieldDescriptorProto'LABEL_REPEATED
               | Just (k, v) <- getMapFields env fd
                   -> "Data.ProtoLens.MapField"
-                         @@ con (unQual $ nameFromSymbol $ overloadedField k)
-                         @@ con (unQual $ nameFromSymbol $ overloadedField v)
+                         @@ fromString (overloadedField k)
+                         @@ fromString (overloadedField v)
               | otherwise -> "Data.ProtoLens.RepeatedField"
                   @@ if isPackedField syntaxType fd
                         then "Data.ProtoLens.Packed"
                         else "Data.ProtoLens.Unpacked"
     hsFieldName
-        = nameFromSymbol $ case fd ^. label of
+        = fromString $ case fd ^. label of
               FieldDescriptorProto'LABEL_OPTIONAL
                   | not (isDefaultingOptional syntaxType fd)
-                      -> "maybe'" <> overloadedField f
+                      -> "maybe'" ++ overloadedField f
               _ -> overloadedField f
-
-overloadedField :: FieldInfo -> Symbol
-overloadedField = overloadedName . plainFieldName
 
 isDefaultingOptional :: SyntaxType -> FieldDescriptorProto -> Bool
 isDefaultingOptional syntaxType f
