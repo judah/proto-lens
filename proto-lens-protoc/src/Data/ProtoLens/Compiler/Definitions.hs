@@ -214,7 +214,7 @@ messageDefs protoPrefix hsPrefix d
   where
     protoName = protoPrefix <> d ^. name
     hsPrefix' = hsPrefix ++ hsName (d ^. name) ++ "'"
-    hsName = unpack . capitalize . camelCase
+    hsName = unpack . capitalize
     allFields = collectFieldsByOneofIndex (d ^. field)
     thisDef =
         Message MessageInfo

@@ -13,7 +13,7 @@ module Main where
 
 import Data.Int (Int32)
 import Data.ProtoLens (def, Message)
-import Lens.Family2 (Lens', (&), view, set)
+import Lens.Family2 (Lens', (&), (.~), (^.))
 import Prelude hiding (Maybe, maybe, map, head, span)
 import qualified Prelude
 import Test.Framework (Test, testGroup)
@@ -34,14 +34,13 @@ main = testMain
     [ testNames
     , testPreludeType
     , testHaskellKeywords
-    , testOddCasedMessage
     , testProtoKeywords
     , testProtoKeywordTypes
     , testReadReservedName
     ]
 
 testNames, testPreludeType, testHaskellKeywords, testProtoKeywords,
-    testOddCasedMessage, testProtoKeywordTypes, testReadReservedName :: Test
+    testProtoKeywordTypes, testReadReservedName :: Test
 
 -- | Test that we can get/set each individual field.
 testFields :: forall a . (Show a, Message a, Eq a)
@@ -53,10 +52,7 @@ testFields name defValue fields = testGroup name
     , runTypedTest (roundTripTest "roundTrip" :: TypedTest a)
     ]
   where
-    testField (SomeLens f) = verifyLens defValue f 1
-
-verifyLens :: (Show b, Eq b) => a -> Lens' a b -> b -> IO ()
-verifyLens x f y = y @=? view f (set f y x)
+    testField (SomeLens f) = 1 @=? (defValue & f .~ 1) ^. f
 
 -- | Wraps a Lens' (which is a higher-order type) so it can be used in a list
 -- without ImpredicativeTypes.
@@ -106,18 +102,6 @@ testHaskellKeywords = testFields "haskellKeywords" (def :: HaskellKeywords)
     , SomeLens hiding
     ]
 
-testOddCasedMessage = testGroup "oddCasedMessage"
-    [ runTypedTest (roundTripTest "roundTrip" :: TypedTest OddCasedMessage)
-    , testCase "oneofField" $ do
-          verifyLens defMsg maybe'oneofField $ Just
-                    (OddCasedMessage'OneofCase 42
-                        :: OddCasedMessage'OneofField)
-          verifyLens defMsg oneofCase 42
-          verifyLens defMsg maybe'oneofCase (Just 42)
-    ]
-  where
-    defMsg = def :: OddCasedMessage
-
 testProtoKeywords = testFields "protoKeywords" (def :: ProtoKeywords)
     [ SomeLens required
     , SomeLens message
@@ -143,5 +127,5 @@ testProtoKeywordTypes = testFields "protoKeywordTypes" (def :: ProtoKeywordTypes
 -- make sure we don't expect that apostrophe when parsing TextFormat.
 -- "import" field.
 testReadReservedName = readFrom "testReadReservedName"
-      (Just $ def & set import' 1 :: Prelude.Maybe HaskellKeywords)
+      (Just $ def & import' .~ 1 :: Prelude.Maybe HaskellKeywords)
       "import: 1"
