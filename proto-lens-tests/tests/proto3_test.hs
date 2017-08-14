@@ -5,6 +5,7 @@
 -- https://developers.google.com/open-source/licenses/bsd
 
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Main where
 
 import Data.ProtoLens
@@ -15,6 +16,8 @@ import Proto.Proto3
     ( Foo
     , Foo'FooEnum(..)
     , Foo'Sub(..)
+    , FooUnknown
+    , FooUnknown'FooUnknownEnum(..)
     , Strings
     )
 import Proto.Proto3'Fields
@@ -96,7 +99,15 @@ main = testMain
       [ testCase "int" $ (def :: Foo) @=? (def & a .~ 0)
       , testCase "bytes" $ (def :: Strings) @=? (def & bytes .~ "")
       , testCase "string" $ (def :: Strings) @=? (def & string .~ "")
-      , testCase "enum" $ (def :: Foo) @=? (def & enum .~ Foo'Enum1)
+      , testCase "enum" $ (def :: Foo) @=? (def & enum .~ Recognized Foo'Enum1)
+      ]
+  -- Proto3 enums should preserve unknown fields.
+  , testGroup "unknown enum"
+      [ testCase "roundTrip" $ do
+            let x = def & enum .~ Recognized FooUnknown'Enum3 :: FooUnknown
+            let (y :: Foo) = decodeMessageOrDie (encodeMessage x)
+            let z = decodeMessageOrDie (encodeMessage y)
+            x @=? z
       ]
   -- Unset proto3 messages are different than the default value.
   , testGroup "submessage"

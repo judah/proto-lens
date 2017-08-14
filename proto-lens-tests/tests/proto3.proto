@@ -29,3 +29,12 @@ message Strings {
   bytes bytes = 1;
   string string = 2;
 }
+
+message FooUnknown {
+  enum FooUnknownEnum {
+    Enum1 = 0;
+    Enum2 = 1;
+    Enum3 = 2;  // A case not in Foo.FooEnum
+  }
+  FooUnknownEnum enum = 6;  // Corresponds to Foo.enum
+}

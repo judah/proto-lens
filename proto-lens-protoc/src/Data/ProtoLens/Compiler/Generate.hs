@@ -126,7 +126,7 @@ generateModule modName imports syntaxType modifyImport definitions importedEnv
 allMessageFields :: SyntaxType -> Env QName -> MessageInfo Name -> [RecordField]
 allMessageFields syntaxType env info =
     map (plainRecordField syntaxType env) (messageFields info)
-        ++ map (oneofRecordField env) (messageOneofFields info)
+        ++ map (oneofRecordField syntaxType env) (messageOneofFields info)
 
 importSimple :: ModuleName -> ImportDecl ()
 importSimple m = ImportDecl
@@ -155,7 +155,7 @@ generateMessageDecls syntaxType env protoName info =
     --    foo :: Baz
     -- }
     [ dataDecl dataName
-        [recDecl dataName $
+        [recDecl dataName
                   [ (recordFieldName f, recordFieldType f)
                   | f <- allFields
                   ]
@@ -173,7 +173,7 @@ generateMessageDecls syntaxType env protoName info =
     -- haskell: data Foo'Bar = Foo'Bar'c !Prelude.Float
     --                       | Foo'Bar's !Sub
     [ dataDecl (oneofTypeName oneofInfo)
-      [ conDecl consName [hsFieldType env $ fieldDescriptor f]
+      [ conDecl consName [hsFieldType syntaxType env $ fieldDescriptor f]
       | c <- oneofCases oneofInfo
       , let f = caseField c
       , let consName = caseConstructorName c
@@ -455,8 +455,8 @@ plainRecordField syntaxType env f = case fd ^. label of
         -- data Foo = Foo { _Foo_bar :: Map Bar Baz }
         -- type instance Field "foo" Foo = Map Bar Baz
         | Just (k,v) <- getMapFields env fd -> let
-            mapType = "Data.Map.Map" @@ hsFieldType env (fieldDescriptor k)
-                                     @@ hsFieldType env (fieldDescriptor v)
+            mapType = "Data.Map.Map" @@ hsType (fieldDescriptor k)
+                                     @@ hsType (fieldDescriptor v)
             in recordField mapType
                   [LensInstance
                        { lensSymbol = baseName
@@ -473,9 +473,10 @@ plainRecordField syntaxType env f = case fd ^. label of
                       }]
   where
     recordField = RecordField (haskellRecordFieldName $ plainFieldName f)
+    hsType = hsFieldType syntaxType env
+    baseType = hsType fd
     baseName = overloadedName $ plainFieldName f
     fd = fieldDescriptor f
-    baseType = hsFieldType env fd
     maybeType = "Prelude.Maybe" @@ baseType
     listType = tyList baseType
     rawAccessor = "Prelude.id"
@@ -483,8 +484,8 @@ plainRecordField syntaxType env f = case fd ^. label of
                           @@ hsFieldValueDefault env fd
 
 
-oneofRecordField :: Env QName -> OneofInfo -> RecordField
-oneofRecordField env oneofInfo
+oneofRecordField :: SyntaxType -> Env QName -> OneofInfo -> RecordField
+oneofRecordField syntax env oneofInfo
     = RecordField
         { recordFieldName = haskellRecordFieldName $ oneofFieldName oneofInfo
         , recordFieldType =
@@ -528,7 +529,7 @@ oneofRecordField env oneofInfo
             | c <- oneofCases oneofInfo
             , let f = caseField c
             , let baseName = overloadedName $ plainFieldName f
-            , let baseType = hsFieldType env $ fieldDescriptor f
+            , let baseType = hsFieldType syntax env $ fieldDescriptor f
             , let maybeName = "maybe'" <> baseName
             ]
 
@@ -542,8 +543,8 @@ getMapFields env f
     , [f1, f2] <- messageFields m = Just (f1, f2)
     | otherwise = Nothing
 
-hsFieldType :: Env QName -> FieldDescriptorProto -> Type
-hsFieldType env fd = case fd ^. type' of
+hsFieldType :: SyntaxType -> Env QName -> FieldDescriptorProto -> Type
+hsFieldType syntaxType env fd = case fd ^. type' of
     FieldDescriptorProto'TYPE_DOUBLE -> "Prelude.Double"
     FieldDescriptorProto'TYPE_FLOAT -> "Prelude.Float"
     FieldDescriptorProto'TYPE_INT64 -> "Data.Int.Int64"
@@ -564,7 +565,10 @@ hsFieldType env fd = case fd ^. type' of
     FieldDescriptorProto'TYPE_BYTES -> "Data.ByteString.ByteString"
     FieldDescriptorProto'TYPE_UINT32 -> "Data.Word.Word32"
     FieldDescriptorProto'TYPE_ENUM
-        | Enum e <- definedFieldType fd env -> tyCon $ enumName e
+        | Enum e <- definedFieldType fd env ->
+            if syntaxType == Proto2
+              then tyCon $ enumName e
+              else "Data.ProtoLens.Lax" @@ tyCon (enumName e)
         | otherwise -> error $ "expected TYPE_ENUM for type name"
                               ++ unpack (fd ^. typeName)
     FieldDescriptorProto'TYPE_SFIXED32 -> "Data.Int.Int32"
@@ -741,7 +745,7 @@ fieldDescriptorExpr syntaxType env n f =
         @@ (fieldTypeDescriptorExpr (fd ^. type')
                 @::@
                     ("Data.ProtoLens.FieldTypeDescriptor"
-                        @@ hsFieldType env fd))
+                        @@ hsFieldType syntaxType env fd))
         @@ fieldAccessorExpr syntaxType env f)
     -- TODO: why is this type sig needed?
     @::@

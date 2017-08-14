@@ -6,7 +6,9 @@
 
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 -- | Datatypes for reflection of protocol buffer messages.
 module Data.ProtoLens.Message (
@@ -22,7 +24,14 @@ module Data.ProtoLens.Message (
     Packing(..),
     FieldTypeDescriptor(..),
     FieldDefault(..),
+    -- * Enums
+    -- $enums
     MessageEnum(..),
+    Lax(..),
+    lax,
+    laxDef,
+    UnrecognizedValue,
+    fromUnrecognizedValue,
     -- * Building protocol buffers
     Default(..),
     build,
@@ -38,6 +47,7 @@ import Data.Int
 import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Maybe (fromMaybe)
+import Data.Ord (comparing)
 import qualified Data.Text as T
 import Data.Word
 import Lens.Family2 (Lens', over)
@@ -151,6 +161,12 @@ instance FieldDefault B.ByteString where
 instance FieldDefault T.Text where
     fieldDefault = T.empty
 
+instance FieldDefault a => FieldDefault (Lax a) where
+    fieldDefault = Recognized fieldDefault
+
+instance Default a => Default (Lax a) where
+    def = Recognized def
+
 
 -- | How a given repeated field is transmitted on the wire format.
 data Packing = Packed | Unpacked
@@ -188,6 +204,97 @@ class (Enum a, Bounded a) => MessageEnum a where
     -- | Convert the given 'String' to an enum value. Returns 'Nothing' if
     -- no corresponding value was defined in the .proto file.
     readEnum :: String -> Maybe a
+
+-- Otherwise: data MyEnum s = ... where s is either Lax or Strict
+
+-- | A wrapped proto3 enum.  This type is "Open" to include both
+-- known cases and unknown integer values.
+--
+-- In most cases, you will want to use `laxDef` to retrieve an `a`,
+
+data Lax a
+    = Recognized !a                   -- ^ A case defined in the .proto file.
+    | Unrecognized !(UnrecognizedValue a) -- ^ An integer value not defined in
+                                          -- the .proto file.
+    deriving (Show)
+
+-- Extract a known value from a @Lax a@.  If the underlying value is
+-- unrecognized, return the 'Default' (which is always the zero value for
+-- proto3 enums).
+--
+-- For more details, see the
+-- <https://developers.google.com/protocol-buffers/docs/proto3#enum proto3 documentation>.
+--
+-- Note that, like `maybeLens`, this is does not satisfy the lens laws;
+-- however, it only matters when explicitly checking whether a value is unknown.
+laxDef :: Default a => Lens' (Lax a) a
+laxDef = lens mk $ const Recognized
+  where
+    mk (Recognized a) = a
+    mk _ = def
+
+-- TODO: should laxDef be the default of everything instead?
+-- - LABEL_OPTIONAL: if proto3 and enum, then foo and lax'foo...
+--   there's no maybe'foo since it's proto3.
+-- - WHAT ABOUT MAPS?  ONEOF?
+--    - enums can't be map keys, for this reason
+--    - ONEOF is annoying...
+-- - LABEL_REPEATED: foo and lax'foo
+
+instance MessageEnum a => Eq (Lax a) where
+    x == y = fromEnum x == fromEnum y
+
+instance MessageEnum a => Ord (Lax a) where
+    compare = comparing fromEnum
+
+-- guarantee: lax (unrecognizedValue u) == Unrecognized u
+-- | An integral value which does not correspond to
+--
+-- This type is guaranteed to be disjoint from @a@; that is, if @x :: a@ and
+-- @y :: Unrecognized a@ then @fromEnum x /= fromUnrecognized y@.  (We
+-- can enfore this since the only way to get an 'Unrecognized' is by
+-- calling 'lax'.)
+newtype UnrecognizedValue a = UnrecognizedValue Int32
+    deriving (Eq, Ord)
+
+instance Show (UnrecognizedValue a) where
+    show (UnrecognizedValue n) = show n
+
+-- | Extract an unrecognized integer value.
+fromUnrecognizedValue :: UnrecognizedValue a -> Int32
+fromUnrecognizedValue (UnrecognizedValue n) = n
+
+-- | Convert a raw integer to an enum, depending on whether it was
+-- defined in the .proto file.
+--
+-- Its behavior is defined by:
+--
+-- @
+--    lax (fromEnum (x :: a))                      :: Lax a === Recognized x
+--    lax (fromUnrecognized (x :: Unrecognized a)) :: Lax a === Unrecognized x
+-- @
+lax :: MessageEnum a => Int32 -> Lax a
+lax = toEnum . fromEnum
+
+instance MessageEnum a => Enum (Lax a) where
+    fromEnum (Recognized x) = fromEnum x
+    fromEnum (Unrecognized x) = fromEnum $ fromUnrecognizedValue x
+    toEnum n
+        | Just x <- maybeToEnum n = Recognized x
+        | otherwise = Unrecognized (UnrecognizedValue $ toEnum n)
+
+instance MessageEnum a => Bounded (Lax a) where
+    -- TODO: prevent overlap in case where it's known?
+    minBound = lax minBound
+    maxBound = lax maxBound
+
+instance MessageEnum a => MessageEnum (Lax a) where
+    maybeToEnum n = Just $ toEnum n
+    showEnum (Unrecognized n) = show n
+    showEnum (Recognized s) = showEnum s
+    readEnum s
+        | [(n::Int32,"")] <- reads s = Just $ lax n
+        | otherwise = Recognized <$> readEnum s
 
 -- | Utility function for building a message from a default value.
 -- For example:

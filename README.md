@@ -92,12 +92,10 @@ will generate the haskell files `Proto/Project/{Foo,Bar}.hs`.
   libraries.
 - Unknown fields of proto2 messages are discarded during decoding. (This is the
   correct behavior for proto3.)
-- Unknown enum values cause a decoding error, instead of being preserved
+- Unknown proto2 enum values cause a decoding error, instead of being preserved
   round-trip.
 - Files with `import public` statements compile correctly, but don't explicitly
   reexport the definitions from those imports.
-- Enum aliases (`option allow_alias = true`) are not supported; each enum value
-  must map to a distinct integer constant.
 
 # Troubleshooting
 
