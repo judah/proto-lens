@@ -74,7 +74,9 @@ instance Data.Default.Class.Default CodeGeneratorRequest where
                                  _CodeGeneratorRequest'protoFile = []}
 
 instance Data.ProtoLens.Message CodeGeneratorRequest where
-        descriptor
+        messageName _
+          = Data.Text.pack "google.protobuf.compiler.CodeGeneratorRequest"
+        fieldsByTag
           = let fileToGenerate__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "file_to_generate"
                       (Data.ProtoLens.StringField ::
@@ -101,16 +103,15 @@ instance Data.ProtoLens.Message CodeGeneratorRequest where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "protoFile")))
                       :: Data.ProtoLens.FieldDescriptor CodeGeneratorRequest
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.compiler.CodeGeneratorRequest")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, fileToGenerate__field_descriptor),
-                    (Data.ProtoLens.Tag 2, parameter__field_descriptor),
-                    (Data.ProtoLens.Tag 15, protoFile__field_descriptor)])
-                (Data.Map.fromList
-                   [("file_to_generate", fileToGenerate__field_descriptor),
-                    ("parameter", parameter__field_descriptor),
-                    ("proto_file", protoFile__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, fileToGenerate__field_descriptor),
+                 (Data.ProtoLens.Tag 2, parameter__field_descriptor),
+                 (Data.ProtoLens.Tag 15, protoFile__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data CodeGeneratorResponse = CodeGeneratorResponse{_CodeGeneratorResponse'error
                                                    :: !(Prelude.Maybe Data.Text.Text),
@@ -156,7 +157,9 @@ instance Data.Default.Class.Default CodeGeneratorResponse where
                                   _CodeGeneratorResponse'file = []}
 
 instance Data.ProtoLens.Message CodeGeneratorResponse where
-        descriptor
+        messageName _
+          = Data.Text.pack "google.protobuf.compiler.CodeGeneratorResponse"
+        fieldsByTag
           = let error__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "error"
                       (Data.ProtoLens.StringField ::
@@ -174,14 +177,14 @@ instance Data.ProtoLens.Message CodeGeneratorResponse where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "file")))
                       :: Data.ProtoLens.FieldDescriptor CodeGeneratorResponse
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.compiler.CodeGeneratorResponse")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, error__field_descriptor),
-                    (Data.ProtoLens.Tag 15, file__field_descriptor)])
-                (Data.Map.fromList
-                   [("error", error__field_descriptor),
-                    ("file", file__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, error__field_descriptor),
+                 (Data.ProtoLens.Tag 15, file__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data CodeGeneratorResponse'File = CodeGeneratorResponse'File{_CodeGeneratorResponse'File'name
                                                              :: !(Prelude.Maybe Data.Text.Text),
@@ -261,7 +264,10 @@ instance Data.Default.Class.Default CodeGeneratorResponse'File
                                        _CodeGeneratorResponse'File'content = Prelude.Nothing}
 
 instance Data.ProtoLens.Message CodeGeneratorResponse'File where
-        descriptor
+        messageName _
+          = Data.Text.pack
+              "google.protobuf.compiler.CodeGeneratorResponse.File"
+        fieldsByTag
           = let name__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "name"
                       (Data.ProtoLens.StringField ::
@@ -288,14 +294,12 @@ instance Data.ProtoLens.Message CodeGeneratorResponse'File where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "maybe'content")))
                       :: Data.ProtoLens.FieldDescriptor CodeGeneratorResponse'File
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack
-                   "google.protobuf.compiler.CodeGeneratorResponse.File")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, name__field_descriptor),
-                    (Data.ProtoLens.Tag 2, insertionPoint__field_descriptor),
-                    (Data.ProtoLens.Tag 15, content__field_descriptor)])
-                (Data.Map.fromList
-                   [("name", name__field_descriptor),
-                    ("insertion_point", insertionPoint__field_descriptor),
-                    ("content", content__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, name__field_descriptor),
+                 (Data.ProtoLens.Tag 2, insertionPoint__field_descriptor),
+                 (Data.ProtoLens.Tag 15, content__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))

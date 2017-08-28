@@ -10,6 +10,7 @@ module Data.ProtoLens.Any
 
 import Control.Exception (Exception(..))
 import Data.Monoid ((<>))
+import Data.Proxy (Proxy(..))
 import qualified Data.Text as Text
 import Data.Text (Text)
 import Data.Typeable (Typeable)
@@ -18,7 +19,6 @@ import Data.ProtoLens
     , def
     , encodeMessage
     , Message(..)
-    , MessageDescriptor(..)
     )
 import Lens.Family2 ((&), (.~), (^.))
 import Proto.Google.Protobuf.Any
@@ -38,7 +38,7 @@ packWithPrefix prefix x =
     def & typeUrl .~ (prefix <> "/" <> name)
         & value .~ encodeMessage x
   where
-    name = messageName (descriptor :: MessageDescriptor a)
+    name = messageName (Proxy :: Proxy a)
 
 -- | A description of a failure during `unpack` to decode an `Any` message
 -- into the expected type.
@@ -67,4 +67,4 @@ unpack a
         Left e -> Left $ DecodingError $ Text.pack e
         Right x -> Right x
   where
-    expectedName = messageName (descriptor :: MessageDescriptor a)
+    expectedName = messageName (Proxy :: Proxy a)

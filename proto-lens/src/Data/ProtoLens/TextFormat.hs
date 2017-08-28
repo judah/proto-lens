@@ -64,7 +64,12 @@ pprintMessage = pprintMessageWithRegistry mempty
 -- | Pretty-print the given message into human-readable form, using the given
 -- 'Registry' to decode @google.protobuf.Any@ values.
 pprintMessageWithRegistry :: Message msg => Registry -> msg -> Doc
-pprintMessageWithRegistry reg = pprintMessage' reg descriptor
+pprintMessageWithRegistry reg msg
+    -- Either put all fields together on a single line, or use a separate line
+    -- for each field.  We use a single "sep" for all fields (and all elements
+    -- of all the repeated fields) to avoid putting some repeated fields on one
+    -- line and other fields on multiple lines, which is less readable.
+    = sep $ concatMap (pprintField reg msg) $ Map.elems fieldsByTag
 
 -- | Convert the given message into a human-readable 'String'.
 showMessage :: Message msg => msg -> String
@@ -79,14 +84,6 @@ showMessageWithRegistry reg = render . pprintMessageWithRegistry reg
 -- and error messages like @.DebugString()@ in other languages.
 showMessageShort :: Message msg => msg -> String
 showMessageShort = renderStyle (Style OneLineMode maxBound 1.5) . pprintMessage
-
-pprintMessage' :: Registry -> MessageDescriptor msg -> msg -> Doc
-pprintMessage' reg descr msg
-    -- Either put all fields together on a single line, or use a separate line
-    -- for each field.  We use a single "sep" for all fields (and all elements
-    -- of all the repeated fields) to avoid putting some repeated fields on one
-    -- line and other fields on multiple lines, which is less readable.
-    = sep $ concatMap (pprintField reg msg) $ Map.elems $ fieldsByTag descr
 
 pprintField :: Registry -> msg -> FieldDescriptor msg -> [Doc]
 pprintField reg msg (FieldDescriptor name typeDescr accessor)
@@ -188,45 +185,40 @@ readMessageWithRegistry reg str = left show (parse Parser.parser "" str) >>= bui
 
 buildMessage :: forall msg . Message msg => Registry -> Parser.Message -> Either String msg
 buildMessage reg fields
-    | missing <- missingFields desc fields, not $ null missing
+    | missing <- missingFields (Proxy :: Proxy msg) fields, not $ null missing
         = Left $ "Missing fields " ++ show missing
-    | otherwise = reverseRepeatedFields (fieldsByTag desc)
-                      <$> buildMessageFromDescriptor reg desc def fields
-  where
-    desc :: MessageDescriptor msg
-    desc = descriptor
+    | otherwise = reverseRepeatedFields fieldsByTag
+                      <$> foldlM (addField reg) def fields
 
-missingFields :: MessageDescriptor msg -> Parser.Message -> [String]
+missingFields :: forall msg . Message msg => Proxy msg -> Parser.Message -> [String]
 missingFields desc = Set.toList . foldl' deleteField requiredFieldNames
   where
+    fields = fieldsByTextFormatName :: Map.Map String (FieldDescriptor msg)
     requiredFieldNames :: Set.Set String
-    requiredFieldNames = Set.fromList $ Map.keys
+    requiredFieldNames = Set.fromList
+                            $ Map.keys
                             $ Map.filter isRequired
-                            $ fieldsByTextFormatName desc
+                            (fieldsByTextFormatName
+                                  :: Map.Map String (FieldDescriptor msg))
     deleteField :: Set.Set String -> Parser.Field -> Set.Set String
     deleteField fs (Parser.Field (Parser.Key name) _) = Set.delete name fs
     deleteField fs (Parser.Field (Parser.UnknownKey n) _)
-        | Just d <- Map.lookup (Tag (fromIntegral n)) $ fieldsByTag desc
-        = Set.delete (fieldDescriptorName d) fs
+        | Just d <- Map.lookup (Tag (fromIntegral n)) fieldsByTag
+        = Set.delete (fieldDescriptorName (d :: FieldDescriptor msg)) fs
     deleteField fs _ = fs
 
-
-buildMessageFromDescriptor
-    :: Registry -> MessageDescriptor msg -> msg -> Parser.Message -> Either String msg
-buildMessageFromDescriptor reg descr = foldlM (addField reg descr)
-
-addField :: Registry -> MessageDescriptor msg -> msg -> Parser.Field -> Either String msg
-addField reg descr msg (Parser.Field key rawValue) = do
+addField :: Message msg => Registry -> msg -> Parser.Field -> Either String msg
+addField reg msg (Parser.Field key rawValue) = do
     FieldDescriptor _ typeDescriptor accessor <- getFieldDescriptor
     value <- makeValue reg typeDescriptor rawValue
     return $ modifyField accessor value msg
   where
     getFieldDescriptor
         | Parser.Key name <- key, Just f <- Map.lookup name
-                                                (fieldsByTextFormatName descr)
+                                                fieldsByTextFormatName
             = return f
         | Parser.UnknownKey tag <- key, Just f <- Map.lookup (fromIntegral tag)
-                                                      (fieldsByTag descr)
+                                                      fieldsByTag
             = return f
         | otherwise = Left $ "Unrecognized field " ++ show key
 
@@ -280,7 +272,7 @@ makeValue reg field@MessageField (Parser.MessageValue (Just typeUri) x)
               Right value' -> Right (def & anyTypeUrlLens .~ typeUri
                                          & anyValueLens .~ encodeMessage value')
     | otherwise = Left ("Type mismatch parsing explicitly typed message. Expected " ++
-                        show (messageName (descriptor :: MessageDescriptor value))  ++
+                        show (messageName (Proxy :: Proxy value)) ++
                         ", got " ++ show typeUri)
 makeValue reg GroupField (Parser.MessageValue _ x) = buildMessage reg x
 makeValue _ f val = Left $ "Type mismatch parsing text format: " ++ show (f, val)

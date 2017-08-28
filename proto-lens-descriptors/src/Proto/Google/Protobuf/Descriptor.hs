@@ -148,7 +148,8 @@ instance Data.Default.Class.Default DescriptorProto where
                             _DescriptorProto'reservedName = []}
 
 instance Data.ProtoLens.Message DescriptorProto where
-        descriptor
+        messageName _ = Data.Text.pack "google.protobuf.DescriptorProto"
+        fieldsByTag
           = let name__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "name"
                       (Data.ProtoLens.StringField ::
@@ -230,30 +231,22 @@ instance Data.ProtoLens.Message DescriptorProto where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "reservedName")))
                       :: Data.ProtoLens.FieldDescriptor DescriptorProto
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.DescriptorProto")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, name__field_descriptor),
-                    (Data.ProtoLens.Tag 2, field__field_descriptor),
-                    (Data.ProtoLens.Tag 6, extension__field_descriptor),
-                    (Data.ProtoLens.Tag 3, nestedType__field_descriptor),
-                    (Data.ProtoLens.Tag 4, enumType__field_descriptor),
-                    (Data.ProtoLens.Tag 5, extensionRange__field_descriptor),
-                    (Data.ProtoLens.Tag 8, oneofDecl__field_descriptor),
-                    (Data.ProtoLens.Tag 7, options__field_descriptor),
-                    (Data.ProtoLens.Tag 9, reservedRange__field_descriptor),
-                    (Data.ProtoLens.Tag 10, reservedName__field_descriptor)])
-                (Data.Map.fromList
-                   [("name", name__field_descriptor),
-                    ("field", field__field_descriptor),
-                    ("extension", extension__field_descriptor),
-                    ("nested_type", nestedType__field_descriptor),
-                    ("enum_type", enumType__field_descriptor),
-                    ("extension_range", extensionRange__field_descriptor),
-                    ("oneof_decl", oneofDecl__field_descriptor),
-                    ("options", options__field_descriptor),
-                    ("reserved_range", reservedRange__field_descriptor),
-                    ("reserved_name", reservedName__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, name__field_descriptor),
+                 (Data.ProtoLens.Tag 2, field__field_descriptor),
+                 (Data.ProtoLens.Tag 6, extension__field_descriptor),
+                 (Data.ProtoLens.Tag 3, nestedType__field_descriptor),
+                 (Data.ProtoLens.Tag 4, enumType__field_descriptor),
+                 (Data.ProtoLens.Tag 5, extensionRange__field_descriptor),
+                 (Data.ProtoLens.Tag 8, oneofDecl__field_descriptor),
+                 (Data.ProtoLens.Tag 7, options__field_descriptor),
+                 (Data.ProtoLens.Tag 9, reservedRange__field_descriptor),
+                 (Data.ProtoLens.Tag 10, reservedName__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data DescriptorProto'ExtensionRange = DescriptorProto'ExtensionRange{_DescriptorProto'ExtensionRange'start
                                                                      ::
@@ -315,7 +308,9 @@ instance Data.Default.Class.Default DescriptorProto'ExtensionRange
 
 instance Data.ProtoLens.Message DescriptorProto'ExtensionRange
          where
-        descriptor
+        messageName _
+          = Data.Text.pack "google.protobuf.DescriptorProto.ExtensionRange"
+        fieldsByTag
           = let start__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "start"
                       (Data.ProtoLens.Int32Field ::
@@ -333,14 +328,14 @@ instance Data.ProtoLens.Message DescriptorProto'ExtensionRange
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "maybe'end")))
                       :: Data.ProtoLens.FieldDescriptor DescriptorProto'ExtensionRange
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.DescriptorProto.ExtensionRange")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, start__field_descriptor),
-                    (Data.ProtoLens.Tag 2, end__field_descriptor)])
-                (Data.Map.fromList
-                   [("start", start__field_descriptor),
-                    ("end", end__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, start__field_descriptor),
+                 (Data.ProtoLens.Tag 2, end__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data DescriptorProto'ReservedRange = DescriptorProto'ReservedRange{_DescriptorProto'ReservedRange'start
                                                                    ::
@@ -398,7 +393,9 @@ instance Data.Default.Class.Default DescriptorProto'ReservedRange
                                           _DescriptorProto'ReservedRange'end = Prelude.Nothing}
 
 instance Data.ProtoLens.Message DescriptorProto'ReservedRange where
-        descriptor
+        messageName _
+          = Data.Text.pack "google.protobuf.DescriptorProto.ReservedRange"
+        fieldsByTag
           = let start__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "start"
                       (Data.ProtoLens.Int32Field ::
@@ -416,14 +413,14 @@ instance Data.ProtoLens.Message DescriptorProto'ReservedRange where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "maybe'end")))
                       :: Data.ProtoLens.FieldDescriptor DescriptorProto'ReservedRange
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.DescriptorProto.ReservedRange")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, start__field_descriptor),
-                    (Data.ProtoLens.Tag 2, end__field_descriptor)])
-                (Data.Map.fromList
-                   [("start", start__field_descriptor),
-                    ("end", end__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, start__field_descriptor),
+                 (Data.ProtoLens.Tag 2, end__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data EnumDescriptorProto = EnumDescriptorProto{_EnumDescriptorProto'name
                                                :: !(Prelude.Maybe Data.Text.Text),
@@ -487,7 +484,9 @@ instance Data.Default.Class.Default EnumDescriptorProto where
                                 _EnumDescriptorProto'options = Prelude.Nothing}
 
 instance Data.ProtoLens.Message EnumDescriptorProto where
-        descriptor
+        messageName _
+          = Data.Text.pack "google.protobuf.EnumDescriptorProto"
+        fieldsByTag
           = let name__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "name"
                       (Data.ProtoLens.StringField ::
@@ -513,16 +512,15 @@ instance Data.ProtoLens.Message EnumDescriptorProto where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "maybe'options")))
                       :: Data.ProtoLens.FieldDescriptor EnumDescriptorProto
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.EnumDescriptorProto")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, name__field_descriptor),
-                    (Data.ProtoLens.Tag 2, value__field_descriptor),
-                    (Data.ProtoLens.Tag 3, options__field_descriptor)])
-                (Data.Map.fromList
-                   [("name", name__field_descriptor),
-                    ("value", value__field_descriptor),
-                    ("options", options__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, name__field_descriptor),
+                 (Data.ProtoLens.Tag 2, value__field_descriptor),
+                 (Data.ProtoLens.Tag 3, options__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data EnumOptions = EnumOptions{_EnumOptions'allowAlias ::
                                !(Prelude.Maybe Prelude.Bool),
@@ -581,7 +579,8 @@ instance Data.Default.Class.Default EnumOptions where
                         _EnumOptions'uninterpretedOption = []}
 
 instance Data.ProtoLens.Message EnumOptions where
-        descriptor
+        messageName _ = Data.Text.pack "google.protobuf.EnumOptions"
+        fieldsByTag
           = let allowAlias__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "allow_alias"
                       (Data.ProtoLens.BoolField ::
@@ -608,16 +607,15 @@ instance Data.ProtoLens.Message EnumOptions where
                                (Lens.Labels.Proxy#) "uninterpretedOption")))
                       :: Data.ProtoLens.FieldDescriptor EnumOptions
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.EnumOptions")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 2, allowAlias__field_descriptor),
-                    (Data.ProtoLens.Tag 3, deprecated__field_descriptor),
-                    (Data.ProtoLens.Tag 999, uninterpretedOption__field_descriptor)])
-                (Data.Map.fromList
-                   [("allow_alias", allowAlias__field_descriptor),
-                    ("deprecated", deprecated__field_descriptor),
-                    ("uninterpreted_option", uninterpretedOption__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 2, allowAlias__field_descriptor),
+                 (Data.ProtoLens.Tag 3, deprecated__field_descriptor),
+                 (Data.ProtoLens.Tag 999, uninterpretedOption__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data EnumValueDescriptorProto = EnumValueDescriptorProto{_EnumValueDescriptorProto'name
                                                          :: !(Prelude.Maybe Data.Text.Text),
@@ -692,7 +690,9 @@ instance Data.Default.Class.Default EnumValueDescriptorProto where
                                      _EnumValueDescriptorProto'options = Prelude.Nothing}
 
 instance Data.ProtoLens.Message EnumValueDescriptorProto where
-        descriptor
+        messageName _
+          = Data.Text.pack "google.protobuf.EnumValueDescriptorProto"
+        fieldsByTag
           = let name__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "name"
                       (Data.ProtoLens.StringField ::
@@ -718,16 +718,15 @@ instance Data.ProtoLens.Message EnumValueDescriptorProto where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "maybe'options")))
                       :: Data.ProtoLens.FieldDescriptor EnumValueDescriptorProto
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.EnumValueDescriptorProto")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, name__field_descriptor),
-                    (Data.ProtoLens.Tag 2, number__field_descriptor),
-                    (Data.ProtoLens.Tag 3, options__field_descriptor)])
-                (Data.Map.fromList
-                   [("name", name__field_descriptor),
-                    ("number", number__field_descriptor),
-                    ("options", options__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, name__field_descriptor),
+                 (Data.ProtoLens.Tag 2, number__field_descriptor),
+                 (Data.ProtoLens.Tag 3, options__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data EnumValueOptions = EnumValueOptions{_EnumValueOptions'deprecated
                                          :: !(Prelude.Maybe Prelude.Bool),
@@ -771,7 +770,8 @@ instance Data.Default.Class.Default EnumValueOptions where
                              _EnumValueOptions'uninterpretedOption = []}
 
 instance Data.ProtoLens.Message EnumValueOptions where
-        descriptor
+        messageName _ = Data.Text.pack "google.protobuf.EnumValueOptions"
+        fieldsByTag
           = let deprecated__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "deprecated"
                       (Data.ProtoLens.BoolField ::
@@ -790,14 +790,14 @@ instance Data.ProtoLens.Message EnumValueOptions where
                                (Lens.Labels.Proxy#) "uninterpretedOption")))
                       :: Data.ProtoLens.FieldDescriptor EnumValueOptions
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.EnumValueOptions")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, deprecated__field_descriptor),
-                    (Data.ProtoLens.Tag 999, uninterpretedOption__field_descriptor)])
-                (Data.Map.fromList
-                   [("deprecated", deprecated__field_descriptor),
-                    ("uninterpreted_option", uninterpretedOption__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, deprecated__field_descriptor),
+                 (Data.ProtoLens.Tag 999, uninterpretedOption__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data FieldDescriptorProto = FieldDescriptorProto{_FieldDescriptorProto'name
                                                  :: !(Prelude.Maybe Data.Text.Text),
@@ -1012,7 +1012,9 @@ instance Data.Default.Class.Default FieldDescriptorProto where
                                  _FieldDescriptorProto'options = Prelude.Nothing}
 
 instance Data.ProtoLens.Message FieldDescriptorProto where
-        descriptor
+        messageName _
+          = Data.Text.pack "google.protobuf.FieldDescriptorProto"
+        fieldsByTag
           = let name__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "name"
                       (Data.ProtoLens.StringField ::
@@ -1095,30 +1097,22 @@ instance Data.ProtoLens.Message FieldDescriptorProto where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "maybe'options")))
                       :: Data.ProtoLens.FieldDescriptor FieldDescriptorProto
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.FieldDescriptorProto")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, name__field_descriptor),
-                    (Data.ProtoLens.Tag 3, number__field_descriptor),
-                    (Data.ProtoLens.Tag 4, label__field_descriptor),
-                    (Data.ProtoLens.Tag 5, type'__field_descriptor),
-                    (Data.ProtoLens.Tag 6, typeName__field_descriptor),
-                    (Data.ProtoLens.Tag 2, extendee__field_descriptor),
-                    (Data.ProtoLens.Tag 7, defaultValue__field_descriptor),
-                    (Data.ProtoLens.Tag 9, oneofIndex__field_descriptor),
-                    (Data.ProtoLens.Tag 10, jsonName__field_descriptor),
-                    (Data.ProtoLens.Tag 8, options__field_descriptor)])
-                (Data.Map.fromList
-                   [("name", name__field_descriptor),
-                    ("number", number__field_descriptor),
-                    ("label", label__field_descriptor),
-                    ("type", type'__field_descriptor),
-                    ("type_name", typeName__field_descriptor),
-                    ("extendee", extendee__field_descriptor),
-                    ("default_value", defaultValue__field_descriptor),
-                    ("oneof_index", oneofIndex__field_descriptor),
-                    ("json_name", jsonName__field_descriptor),
-                    ("options", options__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, name__field_descriptor),
+                 (Data.ProtoLens.Tag 3, number__field_descriptor),
+                 (Data.ProtoLens.Tag 4, label__field_descriptor),
+                 (Data.ProtoLens.Tag 5, type'__field_descriptor),
+                 (Data.ProtoLens.Tag 6, typeName__field_descriptor),
+                 (Data.ProtoLens.Tag 2, extendee__field_descriptor),
+                 (Data.ProtoLens.Tag 7, defaultValue__field_descriptor),
+                 (Data.ProtoLens.Tag 9, oneofIndex__field_descriptor),
+                 (Data.ProtoLens.Tag 10, jsonName__field_descriptor),
+                 (Data.ProtoLens.Tag 8, options__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data FieldDescriptorProto'Label = FieldDescriptorProto'LABEL_OPTIONAL
                                 | FieldDescriptorProto'LABEL_REQUIRED
@@ -1523,7 +1517,8 @@ instance Data.Default.Class.Default FieldOptions where
                          _FieldOptions'uninterpretedOption = []}
 
 instance Data.ProtoLens.Message FieldOptions where
-        descriptor
+        messageName _ = Data.Text.pack "google.protobuf.FieldOptions"
+        fieldsByTag
           = let ctype__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "ctype"
                       (Data.ProtoLens.EnumField ::
@@ -1582,24 +1577,19 @@ instance Data.ProtoLens.Message FieldOptions where
                                (Lens.Labels.Proxy#) "uninterpretedOption")))
                       :: Data.ProtoLens.FieldDescriptor FieldOptions
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.FieldOptions")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, ctype__field_descriptor),
-                    (Data.ProtoLens.Tag 2, packed__field_descriptor),
-                    (Data.ProtoLens.Tag 6, jstype__field_descriptor),
-                    (Data.ProtoLens.Tag 5, lazy__field_descriptor),
-                    (Data.ProtoLens.Tag 3, deprecated__field_descriptor),
-                    (Data.ProtoLens.Tag 10, weak__field_descriptor),
-                    (Data.ProtoLens.Tag 999, uninterpretedOption__field_descriptor)])
-                (Data.Map.fromList
-                   [("ctype", ctype__field_descriptor),
-                    ("packed", packed__field_descriptor),
-                    ("jstype", jstype__field_descriptor),
-                    ("lazy", lazy__field_descriptor),
-                    ("deprecated", deprecated__field_descriptor),
-                    ("weak", weak__field_descriptor),
-                    ("uninterpreted_option", uninterpretedOption__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, ctype__field_descriptor),
+                 (Data.ProtoLens.Tag 2, packed__field_descriptor),
+                 (Data.ProtoLens.Tag 6, jstype__field_descriptor),
+                 (Data.ProtoLens.Tag 5, lazy__field_descriptor),
+                 (Data.ProtoLens.Tag 3, deprecated__field_descriptor),
+                 (Data.ProtoLens.Tag 10, weak__field_descriptor),
+                 (Data.ProtoLens.Tag 999, uninterpretedOption__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data FieldOptions'CType = FieldOptions'STRING
                         | FieldOptions'CORD
@@ -1896,7 +1886,9 @@ instance Data.Default.Class.Default FileDescriptorProto where
                                 _FileDescriptorProto'syntax = Prelude.Nothing}
 
 instance Data.ProtoLens.Message FileDescriptorProto where
-        descriptor
+        messageName _
+          = Data.Text.pack "google.protobuf.FileDescriptorProto"
+        fieldsByTag
           = let name__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "name"
                       (Data.ProtoLens.StringField ::
@@ -1995,34 +1987,24 @@ instance Data.ProtoLens.Message FileDescriptorProto where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "maybe'syntax")))
                       :: Data.ProtoLens.FieldDescriptor FileDescriptorProto
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.FileDescriptorProto")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, name__field_descriptor),
-                    (Data.ProtoLens.Tag 2, package__field_descriptor),
-                    (Data.ProtoLens.Tag 3, dependency__field_descriptor),
-                    (Data.ProtoLens.Tag 10, publicDependency__field_descriptor),
-                    (Data.ProtoLens.Tag 11, weakDependency__field_descriptor),
-                    (Data.ProtoLens.Tag 4, messageType__field_descriptor),
-                    (Data.ProtoLens.Tag 5, enumType__field_descriptor),
-                    (Data.ProtoLens.Tag 6, service__field_descriptor),
-                    (Data.ProtoLens.Tag 7, extension__field_descriptor),
-                    (Data.ProtoLens.Tag 8, options__field_descriptor),
-                    (Data.ProtoLens.Tag 9, sourceCodeInfo__field_descriptor),
-                    (Data.ProtoLens.Tag 12, syntax__field_descriptor)])
-                (Data.Map.fromList
-                   [("name", name__field_descriptor),
-                    ("package", package__field_descriptor),
-                    ("dependency", dependency__field_descriptor),
-                    ("public_dependency", publicDependency__field_descriptor),
-                    ("weak_dependency", weakDependency__field_descriptor),
-                    ("message_type", messageType__field_descriptor),
-                    ("enum_type", enumType__field_descriptor),
-                    ("service", service__field_descriptor),
-                    ("extension", extension__field_descriptor),
-                    ("options", options__field_descriptor),
-                    ("source_code_info", sourceCodeInfo__field_descriptor),
-                    ("syntax", syntax__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, name__field_descriptor),
+                 (Data.ProtoLens.Tag 2, package__field_descriptor),
+                 (Data.ProtoLens.Tag 3, dependency__field_descriptor),
+                 (Data.ProtoLens.Tag 10, publicDependency__field_descriptor),
+                 (Data.ProtoLens.Tag 11, weakDependency__field_descriptor),
+                 (Data.ProtoLens.Tag 4, messageType__field_descriptor),
+                 (Data.ProtoLens.Tag 5, enumType__field_descriptor),
+                 (Data.ProtoLens.Tag 6, service__field_descriptor),
+                 (Data.ProtoLens.Tag 7, extension__field_descriptor),
+                 (Data.ProtoLens.Tag 8, options__field_descriptor),
+                 (Data.ProtoLens.Tag 9, sourceCodeInfo__field_descriptor),
+                 (Data.ProtoLens.Tag 12, syntax__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data FileDescriptorSet = FileDescriptorSet{_FileDescriptorSet'file
                                            :: ![FileDescriptorProto]}
@@ -2045,7 +2027,8 @@ instance Data.Default.Class.Default FileDescriptorSet where
         def = FileDescriptorSet{_FileDescriptorSet'file = []}
 
 instance Data.ProtoLens.Message FileDescriptorSet where
-        descriptor
+        messageName _ = Data.Text.pack "google.protobuf.FileDescriptorSet"
+        fieldsByTag
           = let file__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "file"
                       (Data.ProtoLens.MessageField ::
@@ -2055,11 +2038,12 @@ instance Data.ProtoLens.Message FileDescriptorSet where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "file")))
                       :: Data.ProtoLens.FieldDescriptor FileDescriptorSet
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.FileDescriptorSet")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, file__field_descriptor)])
-                (Data.Map.fromList [("file", file__field_descriptor)])
+              Data.Map.fromList [(Data.ProtoLens.Tag 1, file__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data FileOptions = FileOptions{_FileOptions'javaPackage ::
                                !(Prelude.Maybe Data.Text.Text),
@@ -2337,7 +2321,8 @@ instance Data.Default.Class.Default FileOptions where
                         _FileOptions'uninterpretedOption = []}
 
 instance Data.ProtoLens.Message FileOptions where
-        descriptor
+        messageName _ = Data.Text.pack "google.protobuf.FileOptions"
+        fieldsByTag
           = let javaPackage__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "java_package"
                       (Data.ProtoLens.StringField ::
@@ -2472,42 +2457,28 @@ instance Data.ProtoLens.Message FileOptions where
                                (Lens.Labels.Proxy#) "uninterpretedOption")))
                       :: Data.ProtoLens.FieldDescriptor FileOptions
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.FileOptions")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, javaPackage__field_descriptor),
-                    (Data.ProtoLens.Tag 8, javaOuterClassname__field_descriptor),
-                    (Data.ProtoLens.Tag 10, javaMultipleFiles__field_descriptor),
-                    (Data.ProtoLens.Tag 20,
-                     javaGenerateEqualsAndHash__field_descriptor),
-                    (Data.ProtoLens.Tag 27, javaStringCheckUtf8__field_descriptor),
-                    (Data.ProtoLens.Tag 9, optimizeFor__field_descriptor),
-                    (Data.ProtoLens.Tag 11, goPackage__field_descriptor),
-                    (Data.ProtoLens.Tag 16, ccGenericServices__field_descriptor),
-                    (Data.ProtoLens.Tag 17, javaGenericServices__field_descriptor),
-                    (Data.ProtoLens.Tag 18, pyGenericServices__field_descriptor),
-                    (Data.ProtoLens.Tag 23, deprecated__field_descriptor),
-                    (Data.ProtoLens.Tag 31, ccEnableArenas__field_descriptor),
-                    (Data.ProtoLens.Tag 36, objcClassPrefix__field_descriptor),
-                    (Data.ProtoLens.Tag 37, csharpNamespace__field_descriptor),
-                    (Data.ProtoLens.Tag 999, uninterpretedOption__field_descriptor)])
-                (Data.Map.fromList
-                   [("java_package", javaPackage__field_descriptor),
-                    ("java_outer_classname", javaOuterClassname__field_descriptor),
-                    ("java_multiple_files", javaMultipleFiles__field_descriptor),
-                    ("java_generate_equals_and_hash",
-                     javaGenerateEqualsAndHash__field_descriptor),
-                    ("java_string_check_utf8", javaStringCheckUtf8__field_descriptor),
-                    ("optimize_for", optimizeFor__field_descriptor),
-                    ("go_package", goPackage__field_descriptor),
-                    ("cc_generic_services", ccGenericServices__field_descriptor),
-                    ("java_generic_services", javaGenericServices__field_descriptor),
-                    ("py_generic_services", pyGenericServices__field_descriptor),
-                    ("deprecated", deprecated__field_descriptor),
-                    ("cc_enable_arenas", ccEnableArenas__field_descriptor),
-                    ("objc_class_prefix", objcClassPrefix__field_descriptor),
-                    ("csharp_namespace", csharpNamespace__field_descriptor),
-                    ("uninterpreted_option", uninterpretedOption__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, javaPackage__field_descriptor),
+                 (Data.ProtoLens.Tag 8, javaOuterClassname__field_descriptor),
+                 (Data.ProtoLens.Tag 10, javaMultipleFiles__field_descriptor),
+                 (Data.ProtoLens.Tag 20,
+                  javaGenerateEqualsAndHash__field_descriptor),
+                 (Data.ProtoLens.Tag 27, javaStringCheckUtf8__field_descriptor),
+                 (Data.ProtoLens.Tag 9, optimizeFor__field_descriptor),
+                 (Data.ProtoLens.Tag 11, goPackage__field_descriptor),
+                 (Data.ProtoLens.Tag 16, ccGenericServices__field_descriptor),
+                 (Data.ProtoLens.Tag 17, javaGenericServices__field_descriptor),
+                 (Data.ProtoLens.Tag 18, pyGenericServices__field_descriptor),
+                 (Data.ProtoLens.Tag 23, deprecated__field_descriptor),
+                 (Data.ProtoLens.Tag 31, ccEnableArenas__field_descriptor),
+                 (Data.ProtoLens.Tag 36, objcClassPrefix__field_descriptor),
+                 (Data.ProtoLens.Tag 37, csharpNamespace__field_descriptor),
+                 (Data.ProtoLens.Tag 999, uninterpretedOption__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data FileOptions'OptimizeMode = FileOptions'SPEED
                               | FileOptions'CODE_SIZE
@@ -2585,7 +2556,8 @@ instance Data.Default.Class.Default GeneratedCodeInfo where
         def = GeneratedCodeInfo{_GeneratedCodeInfo'annotation = []}
 
 instance Data.ProtoLens.Message GeneratedCodeInfo where
-        descriptor
+        messageName _ = Data.Text.pack "google.protobuf.GeneratedCodeInfo"
+        fieldsByTag
           = let annotation__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "annotation"
                       (Data.ProtoLens.MessageField ::
@@ -2595,11 +2567,13 @@ instance Data.ProtoLens.Message GeneratedCodeInfo where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "annotation")))
                       :: Data.ProtoLens.FieldDescriptor GeneratedCodeInfo
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.GeneratedCodeInfo")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, annotation__field_descriptor)])
-                (Data.Map.fromList [("annotation", annotation__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, annotation__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data GeneratedCodeInfo'Annotation = GeneratedCodeInfo'Annotation{_GeneratedCodeInfo'Annotation'path
                                                                  :: ![Data.Int.Int32],
@@ -2688,7 +2662,9 @@ instance Data.Default.Class.Default GeneratedCodeInfo'Annotation
                                          _GeneratedCodeInfo'Annotation'end = Prelude.Nothing}
 
 instance Data.ProtoLens.Message GeneratedCodeInfo'Annotation where
-        descriptor
+        messageName _
+          = Data.Text.pack "google.protobuf.GeneratedCodeInfo.Annotation"
+        fieldsByTag
           = let path__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "path"
                       (Data.ProtoLens.Int32Field ::
@@ -2722,18 +2698,16 @@ instance Data.ProtoLens.Message GeneratedCodeInfo'Annotation where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "maybe'end")))
                       :: Data.ProtoLens.FieldDescriptor GeneratedCodeInfo'Annotation
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.GeneratedCodeInfo.Annotation")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, path__field_descriptor),
-                    (Data.ProtoLens.Tag 2, sourceFile__field_descriptor),
-                    (Data.ProtoLens.Tag 3, begin__field_descriptor),
-                    (Data.ProtoLens.Tag 4, end__field_descriptor)])
-                (Data.Map.fromList
-                   [("path", path__field_descriptor),
-                    ("source_file", sourceFile__field_descriptor),
-                    ("begin", begin__field_descriptor),
-                    ("end", end__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, path__field_descriptor),
+                 (Data.ProtoLens.Tag 2, sourceFile__field_descriptor),
+                 (Data.ProtoLens.Tag 3, begin__field_descriptor),
+                 (Data.ProtoLens.Tag 4, end__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data MessageOptions = MessageOptions{_MessageOptions'messageSetWireFormat
                                      :: !(Prelude.Maybe Prelude.Bool),
@@ -2835,7 +2809,8 @@ instance Data.Default.Class.Default MessageOptions where
                            _MessageOptions'uninterpretedOption = []}
 
 instance Data.ProtoLens.Message MessageOptions where
-        descriptor
+        messageName _ = Data.Text.pack "google.protobuf.MessageOptions"
+        fieldsByTag
           = let messageSetWireFormat__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "message_set_wire_format"
                       (Data.ProtoLens.BoolField ::
@@ -2880,23 +2855,18 @@ instance Data.ProtoLens.Message MessageOptions where
                                (Lens.Labels.Proxy#) "uninterpretedOption")))
                       :: Data.ProtoLens.FieldDescriptor MessageOptions
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.MessageOptions")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, messageSetWireFormat__field_descriptor),
-                    (Data.ProtoLens.Tag 2,
-                     noStandardDescriptorAccessor__field_descriptor),
-                    (Data.ProtoLens.Tag 3, deprecated__field_descriptor),
-                    (Data.ProtoLens.Tag 7, mapEntry__field_descriptor),
-                    (Data.ProtoLens.Tag 999, uninterpretedOption__field_descriptor)])
-                (Data.Map.fromList
-                   [("message_set_wire_format",
-                     messageSetWireFormat__field_descriptor),
-                    ("no_standard_descriptor_accessor",
-                     noStandardDescriptorAccessor__field_descriptor),
-                    ("deprecated", deprecated__field_descriptor),
-                    ("map_entry", mapEntry__field_descriptor),
-                    ("uninterpreted_option", uninterpretedOption__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, messageSetWireFormat__field_descriptor),
+                 (Data.ProtoLens.Tag 2,
+                  noStandardDescriptorAccessor__field_descriptor),
+                 (Data.ProtoLens.Tag 3, deprecated__field_descriptor),
+                 (Data.ProtoLens.Tag 7, mapEntry__field_descriptor),
+                 (Data.ProtoLens.Tag 999, uninterpretedOption__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data MethodDescriptorProto = MethodDescriptorProto{_MethodDescriptorProto'name
                                                    :: !(Prelude.Maybe Data.Text.Text),
@@ -3031,7 +3001,9 @@ instance Data.Default.Class.Default MethodDescriptorProto where
                                   _MethodDescriptorProto'serverStreaming = Prelude.Nothing}
 
 instance Data.ProtoLens.Message MethodDescriptorProto where
-        descriptor
+        messageName _
+          = Data.Text.pack "google.protobuf.MethodDescriptorProto"
+        fieldsByTag
           = let name__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "name"
                       (Data.ProtoLens.StringField ::
@@ -3083,22 +3055,18 @@ instance Data.ProtoLens.Message MethodDescriptorProto where
                                (Lens.Labels.Proxy#) "maybe'serverStreaming")))
                       :: Data.ProtoLens.FieldDescriptor MethodDescriptorProto
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.MethodDescriptorProto")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, name__field_descriptor),
-                    (Data.ProtoLens.Tag 2, inputType__field_descriptor),
-                    (Data.ProtoLens.Tag 3, outputType__field_descriptor),
-                    (Data.ProtoLens.Tag 4, options__field_descriptor),
-                    (Data.ProtoLens.Tag 5, clientStreaming__field_descriptor),
-                    (Data.ProtoLens.Tag 6, serverStreaming__field_descriptor)])
-                (Data.Map.fromList
-                   [("name", name__field_descriptor),
-                    ("input_type", inputType__field_descriptor),
-                    ("output_type", outputType__field_descriptor),
-                    ("options", options__field_descriptor),
-                    ("client_streaming", clientStreaming__field_descriptor),
-                    ("server_streaming", serverStreaming__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, name__field_descriptor),
+                 (Data.ProtoLens.Tag 2, inputType__field_descriptor),
+                 (Data.ProtoLens.Tag 3, outputType__field_descriptor),
+                 (Data.ProtoLens.Tag 4, options__field_descriptor),
+                 (Data.ProtoLens.Tag 5, clientStreaming__field_descriptor),
+                 (Data.ProtoLens.Tag 6, serverStreaming__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data MethodOptions = MethodOptions{_MethodOptions'deprecated ::
                                    !(Prelude.Maybe Prelude.Bool),
@@ -3139,7 +3107,8 @@ instance Data.Default.Class.Default MethodOptions where
                           _MethodOptions'uninterpretedOption = []}
 
 instance Data.ProtoLens.Message MethodOptions where
-        descriptor
+        messageName _ = Data.Text.pack "google.protobuf.MethodOptions"
+        fieldsByTag
           = let deprecated__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "deprecated"
                       (Data.ProtoLens.BoolField ::
@@ -3158,14 +3127,14 @@ instance Data.ProtoLens.Message MethodOptions where
                                (Lens.Labels.Proxy#) "uninterpretedOption")))
                       :: Data.ProtoLens.FieldDescriptor MethodOptions
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.MethodOptions")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 33, deprecated__field_descriptor),
-                    (Data.ProtoLens.Tag 999, uninterpretedOption__field_descriptor)])
-                (Data.Map.fromList
-                   [("deprecated", deprecated__field_descriptor),
-                    ("uninterpreted_option", uninterpretedOption__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 33, deprecated__field_descriptor),
+                 (Data.ProtoLens.Tag 999, uninterpretedOption__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data OneofDescriptorProto = OneofDescriptorProto{_OneofDescriptorProto'name
                                                  :: !(Prelude.Maybe Data.Text.Text)}
@@ -3200,7 +3169,9 @@ instance Data.Default.Class.Default OneofDescriptorProto where
                                    Prelude.Nothing}
 
 instance Data.ProtoLens.Message OneofDescriptorProto where
-        descriptor
+        messageName _
+          = Data.Text.pack "google.protobuf.OneofDescriptorProto"
+        fieldsByTag
           = let name__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "name"
                       (Data.ProtoLens.StringField ::
@@ -3210,11 +3181,12 @@ instance Data.ProtoLens.Message OneofDescriptorProto where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "maybe'name")))
                       :: Data.ProtoLens.FieldDescriptor OneofDescriptorProto
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.OneofDescriptorProto")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, name__field_descriptor)])
-                (Data.Map.fromList [("name", name__field_descriptor)])
+              Data.Map.fromList [(Data.ProtoLens.Tag 1, name__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data ServiceDescriptorProto = ServiceDescriptorProto{_ServiceDescriptorProto'name
                                                      :: !(Prelude.Maybe Data.Text.Text),
@@ -3280,7 +3252,9 @@ instance Data.Default.Class.Default ServiceDescriptorProto where
                                    _ServiceDescriptorProto'options = Prelude.Nothing}
 
 instance Data.ProtoLens.Message ServiceDescriptorProto where
-        descriptor
+        messageName _
+          = Data.Text.pack "google.protobuf.ServiceDescriptorProto"
+        fieldsByTag
           = let name__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "name"
                       (Data.ProtoLens.StringField ::
@@ -3306,16 +3280,15 @@ instance Data.ProtoLens.Message ServiceDescriptorProto where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "maybe'options")))
                       :: Data.ProtoLens.FieldDescriptor ServiceDescriptorProto
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.ServiceDescriptorProto")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, name__field_descriptor),
-                    (Data.ProtoLens.Tag 2, method__field_descriptor),
-                    (Data.ProtoLens.Tag 3, options__field_descriptor)])
-                (Data.Map.fromList
-                   [("name", name__field_descriptor),
-                    ("method", method__field_descriptor),
-                    ("options", options__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, name__field_descriptor),
+                 (Data.ProtoLens.Tag 2, method__field_descriptor),
+                 (Data.ProtoLens.Tag 3, options__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data ServiceOptions = ServiceOptions{_ServiceOptions'deprecated ::
                                      !(Prelude.Maybe Prelude.Bool),
@@ -3356,7 +3329,8 @@ instance Data.Default.Class.Default ServiceOptions where
                            _ServiceOptions'uninterpretedOption = []}
 
 instance Data.ProtoLens.Message ServiceOptions where
-        descriptor
+        messageName _ = Data.Text.pack "google.protobuf.ServiceOptions"
+        fieldsByTag
           = let deprecated__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "deprecated"
                       (Data.ProtoLens.BoolField ::
@@ -3375,14 +3349,14 @@ instance Data.ProtoLens.Message ServiceOptions where
                                (Lens.Labels.Proxy#) "uninterpretedOption")))
                       :: Data.ProtoLens.FieldDescriptor ServiceOptions
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.ServiceOptions")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 33, deprecated__field_descriptor),
-                    (Data.ProtoLens.Tag 999, uninterpretedOption__field_descriptor)])
-                (Data.Map.fromList
-                   [("deprecated", deprecated__field_descriptor),
-                    ("uninterpreted_option", uninterpretedOption__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 33, deprecated__field_descriptor),
+                 (Data.ProtoLens.Tag 999, uninterpretedOption__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data SourceCodeInfo = SourceCodeInfo{_SourceCodeInfo'location ::
                                      ![SourceCodeInfo'Location]}
@@ -3404,7 +3378,8 @@ instance Data.Default.Class.Default SourceCodeInfo where
         def = SourceCodeInfo{_SourceCodeInfo'location = []}
 
 instance Data.ProtoLens.Message SourceCodeInfo where
-        descriptor
+        messageName _ = Data.Text.pack "google.protobuf.SourceCodeInfo"
+        fieldsByTag
           = let location__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "location"
                       (Data.ProtoLens.MessageField ::
@@ -3414,11 +3389,13 @@ instance Data.ProtoLens.Message SourceCodeInfo where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "location")))
                       :: Data.ProtoLens.FieldDescriptor SourceCodeInfo
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.SourceCodeInfo")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, location__field_descriptor)])
-                (Data.Map.fromList [("location", location__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, location__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data SourceCodeInfo'Location = SourceCodeInfo'Location{_SourceCodeInfo'Location'path
                                                        :: ![Data.Int.Int32],
@@ -3514,7 +3491,9 @@ instance Data.Default.Class.Default SourceCodeInfo'Location where
                                     _SourceCodeInfo'Location'leadingDetachedComments = []}
 
 instance Data.ProtoLens.Message SourceCodeInfo'Location where
-        descriptor
+        messageName _
+          = Data.Text.pack "google.protobuf.SourceCodeInfo.Location"
+        fieldsByTag
           = let path__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "path"
                       (Data.ProtoLens.Int32Field ::
@@ -3559,21 +3538,17 @@ instance Data.ProtoLens.Message SourceCodeInfo'Location where
                                (Lens.Labels.Proxy#) "leadingDetachedComments")))
                       :: Data.ProtoLens.FieldDescriptor SourceCodeInfo'Location
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.SourceCodeInfo.Location")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, path__field_descriptor),
-                    (Data.ProtoLens.Tag 2, span__field_descriptor),
-                    (Data.ProtoLens.Tag 3, leadingComments__field_descriptor),
-                    (Data.ProtoLens.Tag 4, trailingComments__field_descriptor),
-                    (Data.ProtoLens.Tag 6, leadingDetachedComments__field_descriptor)])
-                (Data.Map.fromList
-                   [("path", path__field_descriptor),
-                    ("span", span__field_descriptor),
-                    ("leading_comments", leadingComments__field_descriptor),
-                    ("trailing_comments", trailingComments__field_descriptor),
-                    ("leading_detached_comments",
-                     leadingDetachedComments__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, path__field_descriptor),
+                 (Data.ProtoLens.Tag 2, span__field_descriptor),
+                 (Data.ProtoLens.Tag 3, leadingComments__field_descriptor),
+                 (Data.ProtoLens.Tag 4, trailingComments__field_descriptor),
+                 (Data.ProtoLens.Tag 6, leadingDetachedComments__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data UninterpretedOption = UninterpretedOption{_UninterpretedOption'name
                                                :: ![UninterpretedOption'NamePart],
@@ -3718,7 +3693,9 @@ instance Data.Default.Class.Default UninterpretedOption where
                                 _UninterpretedOption'aggregateValue = Prelude.Nothing}
 
 instance Data.ProtoLens.Message UninterpretedOption where
-        descriptor
+        messageName _
+          = Data.Text.pack "google.protobuf.UninterpretedOption"
+        fieldsByTag
           = let name__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "name"
                       (Data.ProtoLens.MessageField ::
@@ -3782,24 +3759,19 @@ instance Data.ProtoLens.Message UninterpretedOption where
                                (Lens.Labels.Proxy#) "maybe'aggregateValue")))
                       :: Data.ProtoLens.FieldDescriptor UninterpretedOption
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.UninterpretedOption")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 2, name__field_descriptor),
-                    (Data.ProtoLens.Tag 3, identifierValue__field_descriptor),
-                    (Data.ProtoLens.Tag 4, positiveIntValue__field_descriptor),
-                    (Data.ProtoLens.Tag 5, negativeIntValue__field_descriptor),
-                    (Data.ProtoLens.Tag 6, doubleValue__field_descriptor),
-                    (Data.ProtoLens.Tag 7, stringValue__field_descriptor),
-                    (Data.ProtoLens.Tag 8, aggregateValue__field_descriptor)])
-                (Data.Map.fromList
-                   [("name", name__field_descriptor),
-                    ("identifier_value", identifierValue__field_descriptor),
-                    ("positive_int_value", positiveIntValue__field_descriptor),
-                    ("negative_int_value", negativeIntValue__field_descriptor),
-                    ("double_value", doubleValue__field_descriptor),
-                    ("string_value", stringValue__field_descriptor),
-                    ("aggregate_value", aggregateValue__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 2, name__field_descriptor),
+                 (Data.ProtoLens.Tag 3, identifierValue__field_descriptor),
+                 (Data.ProtoLens.Tag 4, positiveIntValue__field_descriptor),
+                 (Data.ProtoLens.Tag 5, negativeIntValue__field_descriptor),
+                 (Data.ProtoLens.Tag 6, doubleValue__field_descriptor),
+                 (Data.ProtoLens.Tag 7, stringValue__field_descriptor),
+                 (Data.ProtoLens.Tag 8, aggregateValue__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))
 
 data UninterpretedOption'NamePart = UninterpretedOption'NamePart{_UninterpretedOption'NamePart'namePart
                                                                  :: !Data.Text.Text,
@@ -3840,7 +3812,9 @@ instance Data.Default.Class.Default UninterpretedOption'NamePart
                                            Data.ProtoLens.fieldDefault}
 
 instance Data.ProtoLens.Message UninterpretedOption'NamePart where
-        descriptor
+        messageName _
+          = Data.Text.pack "google.protobuf.UninterpretedOption.NamePart"
+        fieldsByTag
           = let namePart__field_descriptor
                   = Data.ProtoLens.FieldDescriptor "name_part"
                       (Data.ProtoLens.StringField ::
@@ -3858,11 +3832,11 @@ instance Data.ProtoLens.Message UninterpretedOption'NamePart where
                             ((Lens.Labels.proxy#) :: (Lens.Labels.Proxy#) "isExtension")))
                       :: Data.ProtoLens.FieldDescriptor UninterpretedOption'NamePart
               in
-              Data.ProtoLens.MessageDescriptor
-                (Data.Text.pack "google.protobuf.UninterpretedOption.NamePart")
-                (Data.Map.fromList
-                   [(Data.ProtoLens.Tag 1, namePart__field_descriptor),
-                    (Data.ProtoLens.Tag 2, isExtension__field_descriptor)])
-                (Data.Map.fromList
-                   [("name_part", namePart__field_descriptor),
-                    ("is_extension", isExtension__field_descriptor)])
+              Data.Map.fromList
+                [(Data.ProtoLens.Tag 1, namePart__field_descriptor),
+                 (Data.ProtoLens.Tag 2, isExtension__field_descriptor)]
+        fieldsByTextFormatName
+          = Data.Map.fromList
+              (Prelude.map
+                 (\ d__ -> (Data.ProtoLens.fieldDescriptorName d__, d__))
+                 (Data.Map.elems Data.ProtoLens.fieldsByTag))

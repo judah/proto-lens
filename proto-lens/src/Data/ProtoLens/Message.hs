@@ -16,7 +16,6 @@ module Data.ProtoLens.Message (
     -- * Reflection of Messages
     Message(..),
     Tag(..),
-    MessageDescriptor(..),
     FieldDescriptor(..),
     fieldDescriptorName,
     isRequired,
@@ -59,22 +58,17 @@ import Lens.Family2.Unchecked (lens)
 -- serialization by providing reflection of all of the fields that may be used
 -- by this type.
 class Default msg => Message msg where
-    descriptor :: MessageDescriptor msg
-
--- | The description of a particular protocol buffer message type.
-data MessageDescriptor msg = MessageDescriptor
-    {  messageName :: T.Text
-      -- ^ A unique identifier for this type, of the format
-      -- @"packagename.messagename"@.
-    , fieldsByTag :: Map Tag (FieldDescriptor msg)
-      -- ^ The fields of the proto, indexed by their (integer) tag.
-    , fieldsByTextFormatName :: Map String (FieldDescriptor msg)
-      -- ^ This map is keyed by the name of the field used for text format protos.
-      -- This is just the field name for every field except for group fields,
-      -- which use their Message type name in text protos instead of their
-      -- field name. For example, "optional group Foo" has the field name "foo"
-      -- but in this map it is stored with the key "Foo".
-    }
+    -- | A unique identifier for this type, of the format
+    -- @"packagename.messagename"@.
+    messageName :: Proxy msg -> T.Text
+    -- | The fields of the proto, indexed by their (integer) tag.
+    fieldsByTag :: Map Tag (FieldDescriptor msg)
+    -- | This map is keyed by the name of the field used for text format protos.
+    -- This is just the field name for every field except for group fields,
+    -- which use their Message type name in text protos instead of their
+    -- field name. For example, "optional group Foo" has the field name "foo"
+    -- but in this map it is stored with the key "Foo".
+    fieldsByTextFormatName :: Map String (FieldDescriptor msg)
 
 -- | A tag that identifies a particular field of the message when converting
 -- to/from the wire format.
@@ -192,14 +186,15 @@ deriving instance Show (FieldTypeDescriptor value)
 
 matchAnyMessage :: forall value . FieldTypeDescriptor value -> Maybe (AnyMessageDescriptor value)
 matchAnyMessage MessageField
-    | messageName desc == "google.protobuf.Any"
+    | messageName (Proxy :: Proxy value) == "google.protobuf.Any"
     , Just (FieldDescriptor _ StringField (PlainField Optional typeUrlLens))
-        <- Map.lookup 1 (fieldsByTag desc)
+        <- Map.lookup 1 fields
     , Just (FieldDescriptor _ BytesField (PlainField Optional valueLens))
-        <- Map.lookup 2 (fieldsByTag desc)
+        <- Map.lookup 2 fields
         = Just $ AnyMessageDescriptor typeUrlLens valueLens
   where
-    desc = descriptor :: MessageDescriptor value
+    fields :: Map.Map Tag (FieldDescriptor value)
+    fields = fieldsByTag
 matchAnyMessage _ = Nothing
 
 data AnyMessageDescriptor msg
@@ -276,9 +271,8 @@ newtype Registry = Registry (Map.Map T.Text SomeMessageType)
 --   Example:
 -- > register (Proxy :: Proxy Proto.My.Proto.Type)
 register :: forall msg . Message msg => Proxy msg -> Registry
-register p = Registry $ Map.singleton (messageName desc) (SomeMessageType p)
-  where
-    desc = descriptor :: MessageDescriptor msg
+register p = Registry $ Map.singleton (messageName (Proxy :: Proxy msg))
+                            (SomeMessageType p)
 
 -- | Look up a message type by name (e.g.,
 -- @"type.googleapis.com/google.protobuf.FloatValue"@). The URL corresponds to

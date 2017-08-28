@@ -156,7 +156,7 @@ tyParen = Syntax.TyParen ()
 type Match = Syntax.Match ()
 
 -- | A simple clause of a function binding.
-match :: Name -> [Pat] -> Exp -> Syntax.Match ()
+match :: Name -> [Pat] -> Exp -> Match
 match n ps e = Syntax.Match () n ps (Syntax.UnGuardedRhs () e) Nothing
 
 type Module = Syntax.Module ()
@@ -201,7 +201,6 @@ pWildCard = Syntax.PWildCard ()
 
 stringPat :: String -> Pat
 stringPat = Syntax.PLit () (Syntax.Signless ()) . string
-
 
 type QName = Syntax.QName ()
 
