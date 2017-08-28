@@ -53,18 +53,19 @@ parseMessage :: forall msg . Message msg => Parser () -> Parser msg
 parseMessage end = do
     (msg, unsetFields) <- loop def requiredFields
     if Map.null unsetFields
-        then return $ reverseRepeatedFields fieldsByTag msg
+        then return $ reverseRepeatedFields fields msg
         else fail $ "Missing required fields "
                         ++ show (map fieldDescriptorName
                                     $ Map.elems $ unsetFields)
   where
-    requiredFields = Map.filter isRequired fieldsByTag
+    fields = fieldsByTag
+    requiredFields = Map.filter isRequired fields
     loop :: msg -> Map.Map Tag (FieldDescriptor msg)
             -> Parser (msg, Map.Map Tag (FieldDescriptor msg))
     loop msg unsetFields = ((msg, unsetFields) <$ end)
                 <|> do
                     tv@(TaggedValue tag _) <- getTaggedValue
-                    case Map.lookup (Tag tag) fieldsByTag of
+                    case Map.lookup (Tag tag) fields of
                         Nothing -> loop msg unsetFields
                         Just field -> do
                             !msg' <- parseAndAddField msg field tv
