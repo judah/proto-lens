@@ -25,7 +25,13 @@ data CodeGeneratorRequest = CodeGeneratorRequest{_CodeGeneratorRequest'fileToGen
                                                  !(Prelude.Maybe Data.Text.Text),
                                                  _CodeGeneratorRequest'protoFile ::
                                                  ![Proto.Google.Protobuf.Descriptor.FileDescriptorProto]}
-                          deriving (Prelude.Show, Prelude.Eq, Prelude.Ord)
+                          deriving (Prelude.Eq, Prelude.Ord)
+
+instance Prelude.Show CodeGeneratorRequest where
+        showsPrec p x
+          = Prelude.showParen ((Prelude.>) p 10)
+              ((Prelude..) (Prelude.showString "readMessageOrDie ")
+                 (Prelude.shows (Data.ProtoLens.showMessageShort x)))
 
 instance (Lens.Labels.HasLens' f CodeGeneratorRequest x a,
           a ~ b) =>
@@ -116,7 +122,13 @@ data CodeGeneratorResponse = CodeGeneratorResponse{_CodeGeneratorResponse'error
                                                    :: !(Prelude.Maybe Data.Text.Text),
                                                    _CodeGeneratorResponse'file ::
                                                    ![CodeGeneratorResponse'File]}
-                           deriving (Prelude.Show, Prelude.Eq, Prelude.Ord)
+                           deriving (Prelude.Eq, Prelude.Ord)
+
+instance Prelude.Show CodeGeneratorResponse where
+        showsPrec p x
+          = Prelude.showParen ((Prelude.>) p 10)
+              ((Prelude..) (Prelude.showString "readMessageOrDie ")
+                 (Prelude.shows (Data.ProtoLens.showMessageShort x)))
 
 instance (Lens.Labels.HasLens' f CodeGeneratorResponse x a,
           a ~ b) =>
@@ -189,7 +201,13 @@ data CodeGeneratorResponse'File = CodeGeneratorResponse'File{_CodeGeneratorRespo
                                                              :: !(Prelude.Maybe Data.Text.Text),
                                                              _CodeGeneratorResponse'File'content ::
                                                              !(Prelude.Maybe Data.Text.Text)}
-                                deriving (Prelude.Show, Prelude.Eq, Prelude.Ord)
+                                deriving (Prelude.Eq, Prelude.Ord)
+
+instance Prelude.Show CodeGeneratorResponse'File where
+        showsPrec p x
+          = Prelude.showParen ((Prelude.>) p 10)
+              ((Prelude..) (Prelude.showString "readMessageOrDie ")
+                 (Prelude.shows (Data.ProtoLens.showMessageShort x)))
 
 instance (Lens.Labels.HasLens' f CodeGeneratorResponse'File x a,
           a ~ b) =>

@@ -160,7 +160,22 @@ generateMessageDecls syntaxType env protoName info =
                   | f <- allFields
                   ]
         ]
-        ["Prelude.Show", "Prelude.Eq", "Prelude.Ord"]
+        ["Prelude.Eq", "Prelude.Ord"]
+    ] ++
+
+    -- instance Show Foo where
+    --     showsPrec p x = Prelude.showParen (p > 10)
+    --                        (Prelude.showString
+    --                          "readMessageOrDie "
+    --                        . Prelude.showString (showMessageShort x))
+    [ instDecl [] ("Prelude.Show" `ihApp` [dataType])
+        [[match "showsPrec" ["p", "x"] $
+            "Prelude.showParen" @@ ("Prelude.>" @@ "p" @@ litInt 10)
+                  @@ ("Prelude.."
+                        @@ ("Prelude.showString" @@ stringExp "readMessageOrDie ")
+                        @@ ("Prelude.shows"
+                                @@ ("Data.ProtoLens.showMessageShort" @@ "x")))
+        ]]
     ] ++
 
     -- oneof field data type declarations
