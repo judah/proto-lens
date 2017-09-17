@@ -24,7 +24,6 @@ echo Building: $PACKAGES
 # Needed by haskell-src-exts which is a dependency of proto-lens-protoc.
 # Sadly, Cabal won't install such build-tools automatically.
 cabal install happy
-
 cabal install hpack
 
 # Unregister the already-installed packages, since otherwise they may
@@ -43,8 +42,8 @@ do
         hpack # Generate the .cabal file
         cabal clean
         cabal install --enable-tests --only-dependencies
-        cabal configure --enable-tests --enable-benchmarks
-        cabal build
+        cabal configure --enable-tests --enable-benchmarks \
+            --ghc-options='-Wall -Werror'
         cabal sdist
         SRC_TGZ=$(cabal info . | awk '{print $2 ".tar.gz"; exit}')
         cd dist
