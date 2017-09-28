@@ -24,6 +24,7 @@ module Data.ProtoLens.TextFormat(
 
 import Lens.Family2 ((&),(^.),(.~), set, over, view)
 import Control.Arrow (left)
+import Data.Bifunctor (first)
 import qualified Data.ByteString
 import Data.Char (isPrint, isAscii, chr)
 import Data.Foldable (foldlM, foldl')
@@ -230,12 +231,15 @@ buildMessageFromDescriptor
     :: Message msg => Registry -> msg -> Parser.Message -> Either String msg
 buildMessageFromDescriptor reg = foldlM (addField reg)
 
-addField :: Message msg => Registry -> msg -> Parser.Field -> Either String msg
+addField :: forall msg . Message msg => Registry -> msg -> Parser.Field -> Either String msg
 addField reg msg (Parser.Field key rawValue) = do
-    FieldDescriptor _ typeDescriptor accessor <- getFieldDescriptor
-    value <- makeValue reg typeDescriptor rawValue
+    FieldDescriptor name typeDescriptor accessor <- getFieldDescriptor
+    value <- first (errorPrefix name ++)
+                $ makeValue reg typeDescriptor rawValue
     return $ modifyField accessor value msg
   where
+    msgName = Text.unpack (messageName (Proxy :: Proxy msg))
+    errorPrefix name = "Error decoding " ++ msgName ++ "." ++ name ++ ": "
     getFieldDescriptor
         | Parser.Key name <- key, Just f <- Map.lookup name
                                                 fieldsByTextFormatName
@@ -243,7 +247,7 @@ addField reg msg (Parser.Field key rawValue) = do
         | Parser.UnknownKey tag <- key, Just f <- Map.lookup (fromIntegral tag)
                                                       fieldsByTag
             = return f
-        | otherwise = Left $ "Unrecognized field " ++ show key
+        | otherwise = Left $ "Unrecognized field " ++ msgName ++ "." ++ show key
 
 modifyField :: FieldAccessor msg value -> value -> msg -> msg
 modifyField (PlainField _ f) value = set f value
@@ -300,4 +304,4 @@ makeValue reg field@MessageField (Parser.MessageValue (Just typeUri) x)
                         show (messageName (Proxy @value))  ++
                         ", got " ++ show typeUri)
 makeValue reg GroupField (Parser.MessageValue _ x) = buildMessage reg x
-makeValue _ f val = Left $ "Type mismatch parsing text format: " ++ show (f, val)
+makeValue _ f val = Left $ "Type mismatch: " ++ show (f, val)
