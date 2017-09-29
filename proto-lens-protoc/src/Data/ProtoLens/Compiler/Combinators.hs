@@ -129,6 +129,9 @@ alt p e = Syntax.Alt () p (Syntax.UnGuardedRhs () e) Nothing
 stringExp :: String -> Exp
 stringExp = Syntax.Lit () . string
 
+charExp :: Char -> Exp
+charExp c = Syntax.Lit () $ Syntax.Char () c [c]
+
 tuple :: [Exp] -> Exp
 tuple = Syntax.Tuple () Syntax.Boxed
 
@@ -359,3 +362,5 @@ modifyModuleName :: (String -> String) -> ModuleName -> ModuleName
 modifyModuleName f (Syntax.ModuleName _ unpacked) =
   Syntax.ModuleName () $ f unpacked
 
+composeE :: [Exp] -> Exp
+composeE = foldr1 (\e e' -> fromString "Prelude.." @@ e @@ e')

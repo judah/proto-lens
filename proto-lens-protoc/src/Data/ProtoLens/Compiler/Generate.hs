@@ -159,7 +159,7 @@ reexported imp@ImportDecl {importModule = m}
 
 generateMessageExports :: MessageInfo Name -> [ExportSpec]
 generateMessageExports m =
-    map (exportAll . unQual)
+    map (flip exportWith [] . unQual)
         $ messageName m : map oneofTypeName (messageOneofFields m)
 
 generateMessageDecls :: SyntaxType -> Env QName -> T.Text -> MessageInfo Name -> [Decl]
@@ -174,9 +174,21 @@ generateMessageDecls syntaxType env protoName info =
                   ]
                   ++ [(messageUnknownFields info, "Data.ProtoLens.FieldSet")]
         ]
-        $ deriving' ["Prelude.Show", "Prelude.Eq", "Prelude.Ord"]
+        $ deriving' ["Prelude.Eq", "Prelude.Ord"]
     ] ++
-
+    -- instance Show Bar where
+    --    showsPrec _ x = showChar '{'
+    --                      . showString (showMessageShort x)
+    --                      . showChar '}'
+    [ instDecl [] ("Prelude.Show" `ihApp` [dataType])
+        [[ match "showsPrec" [pWildCard, "x"]
+               $ composeE
+                  [ "Prelude.showChar" @@ charExp '{'
+                  , "Prelude.showString" @@ ("Data.ProtoLens.showMessageShort" @@ "x")
+                  , "Prelude.showChar" @@ charExp '}'
+                  ]
+        ]]
+    ] ++
     -- oneof field data type declarations
     -- proto: message Foo {
     --          oneof bar {
