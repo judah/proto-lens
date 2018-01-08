@@ -1,7 +1,10 @@
 name: person-proto
 
 custom-setup:
-  dependencies: base, Cabal, proto-lens-protoc
+  dependencies:
+    - base
+    - Cabal
+    - proto-lens-protoc
 
 extra-source-files: src/**/*.proto
 
