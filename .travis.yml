@@ -5,6 +5,9 @@ language: c
 # https://github.com/travis-ci/travis-ci/issues/5623
 sudo: true
 
+dist: trusty
+group: deprecated-2017Q4
+
 cache:
   directories:
   - $HOME/.ghc
