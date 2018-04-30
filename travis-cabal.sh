@@ -42,7 +42,7 @@ do
     (cd $p &&
         hpack # Generate the .cabal file
         cabal clean
-        cabal install --enable-tests --only-dependencies
+        cabal install -v3 --enable-tests --only-dependencies
         cabal configure --enable-tests --enable-benchmarks
         cabal build
         cabal sdist
