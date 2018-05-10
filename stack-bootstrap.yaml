@@ -1,4 +1,4 @@
-resolver: lts-7.4
+resolver: lts-9.21
 packages:
 - proto-lens-protoc
 # Build the current HEAD proto-lens-protoc against older revisions of proto-lens
@@ -12,10 +12,4 @@ packages:
   subdirs:
   - lens-labels
   - proto-lens
-  - proto-lens-descriptors
   extra-dep: True
-flags:
-  proto-lens-protoc:
-    # Skip the library; it's not needed for the executable, and the modules
-    # that it reexports may change between versions of proto-lens.
-    only-executable: True

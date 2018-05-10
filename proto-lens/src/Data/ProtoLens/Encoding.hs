@@ -12,10 +12,13 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 module Data.ProtoLens.Encoding(
     encodeMessage,
     buildMessage,
+    buildMessageDelimited,
     decodeMessage,
     decodeMessageOrDie,
     ) where
@@ -28,13 +31,16 @@ import Control.Applicative ((<|>))
 import Control.Monad (guard)
 import Data.Attoparsec.ByteString as Parse
 import Data.Bool (bool)
+import Data.Monoid ((<>))
+import Data.Proxy (Proxy(Proxy))
 import Data.Text.Encoding (encodeUtf8, decodeUtf8')
 import Data.Text.Encoding.Error (UnicodeException(..))
+import qualified Data.Text as T
 import qualified Data.ByteString as B
 import qualified Data.Map.Strict as Map
 import Data.ByteString.Lazy.Builder as Builder
 import qualified Data.ByteString.Lazy as L
-import Lens.Family2 (set, over, (^.), (&))
+import Lens.Family2 (Lens', set, over, (^.), (&))
 
 -- TODO: We could be more incremental when parsing/encoding length-based fields,
 -- rather than forcing the whole thing.  E.g., for encoding we're doing extra
@@ -48,26 +54,30 @@ decodeMessage input = parseOnly (parseMessage endOfInput) input
 -- | Parse a message with the given ending delimiter (which will be EndGroup in
 -- the case of a group, and end-of-input otherwise).
 parseMessage :: forall msg . Message msg => Parser () -> Parser msg
-parseMessage end = do
+parseMessage end = (Parse.<?> T.unpack (messageName (Proxy @msg))) $ do
     (msg, unsetFields) <- loop def requiredFields
     if Map.null unsetFields
-        then return $ reverseRepeatedFields fields msg
+        then return $ over unknownFields reverse
+                    $ reverseRepeatedFields fields msg
         else fail $ "Missing required fields "
                         ++ show (map fieldDescriptorName
                                     $ Map.elems $ unsetFields)
   where
-    fields = fieldsByTag descriptor
+    fields = fieldsByTag
+    addUnknown :: TaggedValue -> msg -> msg
+    addUnknown !f = over' unknownFields (f :)
     requiredFields = Map.filter isRequired fields
     loop :: msg -> Map.Map Tag (FieldDescriptor msg)
             -> Parser (msg, Map.Map Tag (FieldDescriptor msg))
     loop msg unsetFields = ((msg, unsetFields) <$ end)
                 <|> do
                     tv@(TaggedValue tag _) <- getTaggedValue
-                    case Map.lookup (Tag tag) fields of
-                        Nothing -> loop msg unsetFields
+                    case Map.lookup tag fields of
+                        Nothing -> (loop $! addUnknown tv msg) unsetFields
                         Just field -> do
                             !msg' <- parseAndAddField msg field tv
-                            loop msg' $! Map.delete (Tag tag) unsetFields
+                                      <?> fieldDescriptorName field
+                            loop msg' $! Map.delete tag unsetFields
 
 -- | Decode a message from its wire format.  Throws an error if the decoding
 -- fails.
@@ -85,25 +95,30 @@ parseAndAddField :: msg
                  -> Parser msg
 parseAndAddField
     !msg
-    (FieldDescriptor name typeDescriptor accessor)
+    (FieldDescriptor _ typeDescriptor accessor)
     (TaggedValue tag (WireValue wt val)) = let
-          getSimpleVal = case fieldWireType typeDescriptor of
-                            GroupFieldType -> do
-                                Equal <- equalWireTypes name StartGroup wt
-                                parseMessage (endOfGroup name tag)
-                            FieldWireType fieldWt _ get -> do
-                                Equal <- equalWireTypes name fieldWt wt
-                                runEither $ get val
+          getSimpleVal = case typeDescriptor of
+                            MessageField GroupType -> do
+                                Equal <- equalWireTypes StartGroup wt
+                                parseMessage (endOfGroup tag)
+                            MessageField MessageType -> do
+                                Equal <- equalWireTypes Lengthy wt
+                                runEither $ decodeMessage val
+                            ScalarField f -> case fieldWireType f of
+                                FieldWireType fieldWt _ get -> do
+                                    Equal <- equalWireTypes fieldWt wt
+                                    runEither $ get val
           -- Get a block of packed values, reversed.
-          getPackedVals = case fieldWireType typeDescriptor of
-            GroupFieldType -> fail "Groups can't be packed"
-            FieldWireType fieldWt _ get -> do
-              Equal <- equalWireTypes name Lengthy wt
-              let getElt = do
-                        wv <- getWireValue fieldWt tag
-                        x <- runEither $ get wv
-                        return $! x
-              runEither $ parseOnly (manyReversedTill getElt endOfInput) val
+          getPackedVals = case typeDescriptor of
+            MessageField _ -> fail "Messages can't be packed"
+            ScalarField f -> case fieldWireType f of
+              FieldWireType fieldWt _ get -> do
+                Equal <- equalWireTypes Lengthy wt
+                let getElt = do
+                          wv <- getWireValue fieldWt
+                          x <- runEither $ get wv
+                          return $! x
+                runEither $ parseOnly (manyReversedTill getElt endOfInput) val
           in case accessor of
               PlainField _ f -> do
                   !x <- getSimpleVal
@@ -118,12 +133,11 @@ parseAndAddField
               RepeatedField _ f
                 -> (do
                         !x <- getSimpleVal
-                        return $! over f (\(!xs) -> x:xs) msg)
-                <|> (do 
+                        return $! over' f (x :) msg)
+                <|> (do
                         xs <- getPackedVals
-                        return $! over f (\(!ys) -> xs++ys) msg)
-                <|> fail ("Field " ++ name
-                            ++ "expects a repeated field wire type but found "
+                        return $! over' f (xs ++) msg)
+                <|> fail ("Expected a repeated field wire type but found "
                             ++ show wt)
               MapField keyLens valueLens f -> do
                   entry <- getSimpleVal
@@ -132,6 +146,15 @@ parseAndAddField
                   return $! over f
                       (Map.insert key value)
                       msg
+
+-- | Strict version of 'over' that forces the old value.
+-- Helps prevent gross space leaks when modifying a list field.
+--
+-- In particular, a naive `@over f (x :) y@ keeps the old value of @y@ around
+-- in a thunk, because @(:)@ isn't strict in its second argument.  (Similarly
+-- for @(++)@.)
+over' :: Lens' a b -> (b -> b) -> a -> a
+over' f g = over f (\(!x) -> g x)
 
 -- | Run the parser zero or more times, until the "end" parser succeeds.
 -- Returns a list of the parsed elements, in reverse order.
@@ -146,34 +169,50 @@ encodeMessage = L.toStrict . toLazyByteString . buildMessage
 
 -- | Encode a message to the wire format, as part of a 'Builder'.
 buildMessage :: Message msg => msg -> Builder
-buildMessage msg = foldMap putTaggedValue (messageToTaggedValues msg)
+buildMessage = foldMap putTaggedValue . messageToTaggedValues
+
+-- | Encode a message to the wire format, prefixed by its size as a VarInt,
+-- as part of a 'Builder'.
+--
+-- This can be used to build up streams of messages in the size-delimited
+-- format expected by some protocols.
+buildMessageDelimited :: Message msg => msg -> Builder
+buildMessageDelimited msg =
+  let b = L.toStrict . toLazyByteString $ buildMessage msg in
+    putVarInt (fromIntegral $ B.length b) <> byteString b
 
 -- | Encode a message as a sequence of key-value pairs.
 messageToTaggedValues :: Message msg => msg -> [TaggedValue]
-messageToTaggedValues msg = mconcat
-    [ messageFieldToVals t fieldDescr msg
-    | (Tag t, fieldDescr) <- Map.toList (fieldsByTag descriptor)
-    ]
+messageToTaggedValues msg =
+    mconcat
+        [ messageFieldToVals tag fieldDescr msg
+        | (tag, fieldDescr) <- Map.toList fieldsByTag
+        ]
+    ++ msg ^. unknownFields
 
-messageFieldToVals :: Int -> FieldDescriptor a -> a -> [TaggedValue]
+messageFieldToVals :: Tag -> FieldDescriptor a -> a -> [TaggedValue]
 messageFieldToVals tag (FieldDescriptor _ typeDescriptor accessor) msg =
     let
         embed src
-            = case fieldWireType typeDescriptor of
-                FieldWireType wt convert _
-                    -> [TaggedValue tag $ WireValue wt (convert src)]
-                GroupFieldType
-                    -> TaggedValue tag (WireValue StartGroup ())
+            = case typeDescriptor of
+                MessageField MessageType -> [TaggedValue tag $ WireValue Lengthy
+                                                  $ encodeMessage src]
+                MessageField GroupType ->
+                    TaggedValue tag (WireValue StartGroup ())
                             : messageToTaggedValues src
                                 ++ [TaggedValue tag $ WireValue EndGroup ()]
+                ScalarField f -> case fieldWireType f of
+                    FieldWireType wt convert _ ->
+                        [TaggedValue tag $ WireValue wt (convert src)]
         embedPacked [] = []
         embedPacked src
-            = case fieldWireType typeDescriptor of
-                GroupFieldType -> error "GroupFieldType can't be packed"
-                FieldWireType wt convert _ -> let
-                    v = L.toStrict $ toLazyByteString
-                        $ mconcat [putWireValue wt (convert x) | x <- src]
-                    in [TaggedValue tag $ WireValue Lengthy v]
+            = case typeDescriptor of
+                MessageField _ -> error "Messages can't be packed"
+                ScalarField f -> case fieldWireType f of
+                    FieldWireType wt convert _ -> let
+                        v = L.toStrict $ toLazyByteString
+                            $ mconcat [putWireValue wt (convert x) | x <- src]
+                        in [TaggedValue tag $ WireValue Lengthy v]
     in case accessor of
             PlainField d f
                 -- proto3 optional scalar field:
@@ -194,9 +233,8 @@ messageFieldToVals tag (FieldDescriptor _ typeDescriptor accessor) msg =
 data FieldWireType value where
     FieldWireType :: WireType w -> (value -> w) -> (w -> Either String value)
                   -> FieldWireType value
-    GroupFieldType :: Message value => FieldWireType value
 
-fieldWireType :: FieldTypeDescriptor value -> FieldWireType value
+fieldWireType :: ScalarField value -> FieldWireType value
 -- TODO: Don't let toEnum crash on unknown enum values.
 fieldWireType EnumField = simpleFieldWireType VarInt
                               (fromIntegral . fromEnum)
@@ -223,14 +261,11 @@ fieldWireType DoubleField = simpleFieldWireType Fixed64
 fieldWireType StringField = FieldWireType Lengthy encodeUtf8
                                     (stringizeError . decodeUtf8')
 fieldWireType BytesField = identityFieldWireType Lengthy
-fieldWireType MessageField = FieldWireType Lengthy encodeMessage
-                                decodeMessage
-fieldWireType GroupField = GroupFieldType
 
-endOfGroup :: String -> Int -> Parser ()
-endOfGroup name tag = do
+endOfGroup :: Tag -> Parser ()
+endOfGroup tag = do
     TaggedValue tag' (WireValue wt _) <- getTaggedValue
-    Equal <- equalWireTypes name EndGroup wt
+    Equal <- equalWireTypes EndGroup wt
     guard (tag == tag')
 
 -- | Helper function to define a field type whose decoding operation can't fail.

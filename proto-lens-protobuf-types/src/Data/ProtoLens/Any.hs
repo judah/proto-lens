@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 module Data.ProtoLens.Any
     ( Any
     , pack
@@ -18,11 +19,11 @@ import Data.ProtoLens
     , def
     , encodeMessage
     , Message(..)
-    , MessageDescriptor(..)
     )
+import Data.Proxy (Proxy(..))
 import Lens.Family2 ((&), (.~), (^.))
 import Proto.Google.Protobuf.Any
-import Proto.Google.Protobuf.Any'Fields
+import Proto.Google.Protobuf.Any_Fields
 
 -- | Packs the given message into an 'Any' using the default type URL prefix
 -- "type.googleapis.com".
@@ -38,7 +39,7 @@ packWithPrefix prefix x =
     def & typeUrl .~ (prefix <> "/" <> name)
         & value .~ encodeMessage x
   where
-    name = messageName (descriptor :: MessageDescriptor a)
+    name = messageName (Proxy @a)
 
 -- | A description of a failure during `unpack` to decode an `Any` message
 -- into the expected type.
@@ -67,4 +68,4 @@ unpack a
         Left e -> Left $ DecodingError $ Text.pack e
         Right x -> Right x
   where
-    expectedName = messageName (descriptor :: MessageDescriptor a)
+    expectedName = messageName (Proxy @a)

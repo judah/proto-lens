@@ -14,6 +14,7 @@
 --
 -- See @README.md@ for instructions on how to use proto-lens with Cabal.
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE BangPatterns #-}
 module Data.ProtoLens.Setup
     ( defaultMainGeneratingProtos
     , defaultMainGeneratingSpecificProtos
@@ -23,35 +24,49 @@ module Data.ProtoLens.Setup
     , generateProtos
     ) where
 
-#if __GLASGOW_HASKELL__ < 709
-import Data.Functor ((<$>))
-#endif
-
-import Control.Monad (filterM, forM_, when)
+import Control.DeepSeq (force)
+import Control.Monad (filterM, forM_, guard, when)
+import qualified Data.ByteString as BS
+import qualified Data.Map as Map
+import Data.Maybe (maybeToList)
+import qualified Data.Set as Set
+import qualified Data.Text as T
+import Distribution.ModuleName (ModuleName)
+import qualified Distribution.ModuleName as ModuleName
 import qualified Distribution.InstalledPackageInfo as InstalledPackageInfo
 import Distribution.PackageDescription
     ( PackageDescription(..)
     , benchmarkBuildInfo
+    , benchmarkName
     , buildInfo
+    , exeName
+    , exposedModules
     , extraSrcFiles
     , hsSourceDirs
     , libBuildInfo
+    , otherModules
     , testBuildInfo
+    , testBuildInfo
+    , testName
     )
 import qualified Distribution.Simple.BuildPaths as BuildPaths
 import Distribution.Simple.InstallDirs (datadir)
 import Distribution.Simple.LocalBuildInfo
     ( LocalBuildInfo(..)
     , absoluteInstallDirs
+    , ComponentName(..)
+    , ComponentLocalBuildInfo
     , componentPackageDeps
 #if MIN_VERSION_Cabal(2,0,0)
     , allComponentsInBuildOrder
+    , componentNameMap
 #endif
     )
 import qualified Distribution.Simple.PackageIndex as PackageIndex
 import Distribution.Simple.Setup (fromFlag, copyDest, copyVerbosity)
 import Distribution.Simple.Utils
     ( createDirectoryIfMissingVerbose
+    , getDirectoryContentsRecursive
     , installOrdinaryFile
     , matchFileGlob
     )
@@ -63,25 +78,36 @@ import Distribution.Simple
 import Distribution.Verbosity (Verbosity)
 import System.FilePath
     ( (</>)
+    , (<.>)
     , equalFilePath
     , isRelative
     , makeRelative
-    , takeExtension
     , takeDirectory
+    , takeExtension
     )
 import System.Directory
-    ( createDirectoryIfMissing
+    ( copyFile
+    , createDirectoryIfMissing
     , doesDirectoryExist
+    , doesFileExist
     , findExecutable
     , removeDirectoryRecursive
     )
 import System.IO (hPutStrLn, stderr)
+import System.IO.Temp (withSystemTempDirectory)
 import System.Process (callProcess)
 
+import qualified Data.ProtoLens.Compiler.Plugin as Plugin
+
 -- | This behaves the same as 'Distribution.Simple.defaultMain', but
--- auto-generates Haskell files from the .proto files listed in
--- the @.cabal@ file under @extra-source-files@ which are located under the
--- given root directory.
+-- auto-generates Haskell files from .proto files which are:
+--
+-- * Listed in the @.cabal@ file under @extra-source-files@,
+--
+-- * Located under the given root directory, and
+--
+-- * Correspond to a module (@"Proto.*"@) in `exposed-modules` or
+-- `other-modules` of some component in the @.cabal@ file.
 --
 -- Writes the generated files to the autogen directory (@dist\/build\/autogen@
 -- for Cabal, and @.stack-work\/dist\/...\/build\/autogen@ for stack).
@@ -103,7 +129,7 @@ defaultMainGeneratingProtos root
 -- Throws an exception if the @proto-lens-protoc@ executable is not on the PATH.
 defaultMainGeneratingSpecificProtos
     :: FilePath -- ^ The root directory under which .proto files can be found.
-    -> (PackageDescription -> IO [FilePath])
+    -> (LocalBuildInfo -> IO [FilePath])
     -- ^ A function to return a list of .proto files. Takes the Cabal package
     -- description as input. Non-absolute paths are treated as relative to the
     -- provided root directory.
@@ -113,8 +139,14 @@ defaultMainGeneratingSpecificProtos root getProtos
     $ generatingSpecificProtos root getProtos simpleUserHooks
 
 -- | Augment the given 'UserHooks' to auto-generate Haskell files from the
--- .proto files listed in the @.cabal@ file under @extra-source-files@ which
--- are located under the given root directory.
+-- .proto files which are:
+--
+-- * Listed in the @.cabal@ file under @extra-source-files@,
+--
+-- * Located under the given root directory, and
+--
+-- * Correspond to a module (@"Proto.*"@) in `exposed-modules` or
+-- `other-modules` of some component in the @.cabal@ file.
 --
 -- Writes the generated files to the autogen directory (@dist\/build\/autogen@
 -- for Cabal, and @.stack-work\/dist\/...\/build\/autogen@ for stack).
@@ -125,13 +157,15 @@ generatingProtos
     -> UserHooks -> UserHooks
 generatingProtos root = generatingSpecificProtos root getProtos
   where
-    getProtos p = do
+    getProtos l = do
       -- Replicate Cabal's own logic for parsing file globs.
-      files <- concat <$> mapM matchFileGlob (extraSrcFiles p)
-      pure $ map (makeRelative root)
-           $ filter (isSubdirectoryOf root)
-           $ filter (\f -> takeExtension f == ".proto")
-               files
+      files <- concat <$> mapM matchFileGlob (extraSrcFiles $ localPkgDescr l)
+      pure
+           . filter (\f -> takeExtension f == ".proto")
+           . map (makeRelative root)
+           . filter (isSubdirectoryOf root)
+           $ files
+
 
 -- | Augment the given 'UserHooks' to auto-generate Haskell files from the
 -- .proto files returned by a function @getProtos@.
@@ -142,46 +176,95 @@ generatingProtos root = generatingSpecificProtos root getProtos
 -- Throws an exception if the @proto-lens-protoc@ executable is not on the PATH.
 generatingSpecificProtos
     :: FilePath -- ^ The root directory under which .proto files can be found.
-    -> (PackageDescription -> IO [FilePath])
+    -> (LocalBuildInfo -> IO [FilePath])
     -- ^ A function to return a list of .proto files. Takes the Cabal package
     -- description as input. Non-absolute paths are treated as relative to the
     -- provided root directory.
     -> UserHooks -> UserHooks
 generatingSpecificProtos root getProtos hooks = hooks
-    { buildHook = \p l h f -> generate p l >> buildHook hooks p l h f
-    , haddockHook = \p l h f -> generate p l >> haddockHook hooks p l h f
-    , replHook = \p l h f args -> generate p l >> replHook hooks p l h f args
+    { buildHook = \p l h f -> generate l >> buildHook hooks p l h f
+    , haddockHook = \p l h f -> generate l >> haddockHook hooks p l h f
+    , replHook = \p l h f args -> generate l >> replHook hooks p l h f args
     , sDistHook = \p maybe_l h f -> case maybe_l of
             Nothing -> error "Can't run protoc; run 'cabal configure' first."
             Just l -> do
-                        generate p l
+                        generate l
                         sDistHook hooks (fudgePackageDesc l p) maybe_l h f
     , postCopy = \a flags pkg lbi -> do
                   let verb = fromFlag $ copyVerbosity flags
                   let destDir = datadir (absoluteInstallDirs pkg lbi
                                              $ fromFlag $ copyDest flags)
                               </> protoLensImportsPrefix
-                  getProtos pkg >>= copyProtosToDataDir verb root destDir
+                  getProtos lbi >>= copyProtosToDataDir verb root destDir
                   postCopy hooks a flags pkg lbi
     }
   where
-    generate p l = getProtos p >>= generateSources root l
+    generate l = getProtos l >>= generateSources root l
 
 -- | Generate Haskell source files for the given input .proto files.
+--
+-- Process all the proto files that are referenced in the exposed-modules
+-- or other-modules of some "active" component, and write them all to a
+-- single temporary directory.  (For example, passing --no-enable-tests
+-- makes all test-suite components inactive.)
+--
+-- Then, for each active component, copy the corresponding module files
+-- over to its specific autogen directory (if Cabal-2.*) or to the global
+-- autogen directory (if Cabal-1.*).  However, don't actually do the copy
+-- if it's the same as what's already there.  This way, we don't needlessly
+-- touch the generated .hs files when nothing changes, and thus don't
+-- needlessly make GHC recompile them (as it considers their modification
+-- times for that).
 generateSources :: FilePath -- ^ The root directory
                 -> LocalBuildInfo
                 -> [FilePath] -- ^ Proto files relative to the root directory.
                 -> IO ()
-generateSources root l files = do
+generateSources root l files = withSystemTempDirectory "protoc-out" $ \tmpDir -> do
     -- Collect import paths from build-depends of this package.
     importDirs <- filterM doesDirectoryExist
                      [ InstalledPackageInfo.dataDir info </> protoLensImportsPrefix
                      | info <- collectDeps l
                      ]
-    generateProtosWithImports (root : importDirs) (autogenModulesDir l)
+    -- Generate .hs files for all active components into a single temporary
+    -- directory.
+    let activeModules = collectActiveModules l
+    let allModules = Set.fromList . concat . map snd $ activeModules
+    let usedInComponent f = ModuleName.fromString (Plugin.moduleNameStr "Proto" f)
+                          `Set.member` allModules
+    generateProtosWithImports (root : importDirs) tmpDir
                               -- Applying 'root </>' does nothing if the path is already
                               -- absolute.
-                              (map (root </>) files)
+                              $ map (root </>) $ filter usedInComponent files
+    -- Copy each active component's files over to its autogen directory, but
+    -- only if they've changed since last time.
+    forM_ activeModules $ \(compBI, mods) -> forM_ mods $ \m -> do
+          let f = T.unpack (Plugin.outputFilePath $ ModuleName.toFilePath m)
+          let sourcePath = tmpDir </> f
+          sourceExists <- doesFileExist sourcePath
+          when sourceExists $ do
+            let dest = autogenComponentModulesDir l compBI </> f
+            copyIfDifferent sourcePath dest
+
+-- Note: we do a copy rather than a move since a given module may be used in
+-- more than one component.
+copyIfDifferent :: FilePath -> FilePath -> IO ()
+copyIfDifferent sourcePath targetPath = do
+    targetExists <- doesFileExist targetPath
+    identical <- do
+        if not targetExists
+            then return False
+            else do
+                -- This could be done in a streaming fashion,
+                -- but since the .hs files usually easily fit
+                -- into RAM, this is OK.
+                sourceContents <- BS.readFile sourcePath
+                targetContents <- BS.readFile targetPath
+                return (sourceContents == targetContents)
+    -- Do the move if necessary.
+    when (not identical) $ do
+        createDirectoryIfMissing True (takeDirectory targetPath)
+        copyFile sourcePath targetPath
+
 
 -- | Copy each .proto file into the installed "data-dir" path,
 -- so that it can be included by other packages that depend on this one.
@@ -214,22 +297,30 @@ protoLensImportsPrefix = "proto-lens-imports"
 fudgePackageDesc :: LocalBuildInfo -> PackageDescription -> PackageDescription
 fudgePackageDesc lbi p = p
     { library =
-        (\lib -> lib { libBuildInfo = fudgeBuildInfo (libBuildInfo lib) })
+        (\lib -> lib { libBuildInfo = fudgeBuildInfo CLibName $ libBuildInfo lib })
             <$> library p
     , executables =
-        (\exe -> exe { buildInfo = fudgeBuildInfo (buildInfo exe) })
+        (\exe -> exe { buildInfo = fudgeBuildInfo (CExeName $ exeName exe)
+                                        $ buildInfo exe })
             <$> executables p
     , testSuites =
-        (\test -> test { testBuildInfo = fudgeBuildInfo (testBuildInfo test) })
+        (\test -> test { testBuildInfo = fudgeBuildInfo (CTestName $ testName test)
+                                            $ testBuildInfo test })
             <$> testSuites p
     , benchmarks =
         (\bench -> bench { benchmarkBuildInfo =
-                              fudgeBuildInfo (benchmarkBuildInfo bench) })
+                              fudgeBuildInfo (CBenchName $ benchmarkName bench)
+                                  $ benchmarkBuildInfo bench })
             <$> benchmarks p
     }
   where
-    fudgeBuildInfo bi =
-        bi { hsSourceDirs = autogenModulesDir lbi : hsSourceDirs bi }
+    comps = allComponents lbi
+    fudgeBuildInfo n bi
+        | Just compLBI <- Map.lookup n comps
+            = bi { hsSourceDirs = autogenComponentModulesDir lbi compLBI
+                                    : hsSourceDirs bi }
+        | otherwise = bi -- Could happen if a component isn't active; try
+                         -- anyway and see whether Cabal complains later on.
 
 -- | Returns whether the @root@ is a parent folder of @f@.
 isSubdirectoryOf :: FilePath -> FilePath -> Bool
@@ -264,6 +355,7 @@ generateProtosWithImports
     -> FilePath -- ^ The output directory for the generated Haskell files.
     -> [FilePath] -- ^ The .proto files to process.
     -> IO ()
+generateProtosWithImports _ _ [] = return ()
 generateProtosWithImports imports output files = do
     protoLensProtoc
         <- findExecutableOrDie "proto-lens-protoc"
@@ -296,6 +388,26 @@ findExecutableOrDie name debugMsg = do
             hPutStrLn stderr sep
             error $ "Missing executable " ++ show name
 
+-- | Collect all the module names that we need to build.
+-- For example: only include test-suites if we're building with tests enabled
+-- (e.g., `stack test` vs `stack build`).
+collectActiveModules
+    :: LocalBuildInfo -> [(ComponentLocalBuildInfo, [ModuleName])]
+collectActiveModules l = map (\(n, l) -> (l, f n)) $ Map.toList $ allComponents l
+  where
+    p = localPkgDescr l
+    f CLibName = maybeToList (library p) >>= \l -> exposedModules l
+                                                    ++ otherModules (libBuildInfo l)
+    f (CExeName n) = otherModules . buildInfo $ exes Map.! n
+    f (CTestName n) = otherModules . testBuildInfo $ tests Map.! n
+    f (CBenchName n) = otherModules . benchmarkBuildInfo $ benchs Map.! n
+#if MIN_VERSION_Cabal(2,0,0)
+    f _ = []  -- TODO: other lib kinds; for now just suppress the warning
+#endif
+    exes = Map.fromList [(exeName e, e) | e <- executables p]
+    tests = Map.fromList [(testName e, e) | e <- testSuites p]
+    benchs = Map.fromList [(benchmarkName e, e) | e <- benchmarks p]
+
 -------------------------------------------------------
 -- Compatibility layer between Cabal-1.* and Cabal-2.*
 
@@ -314,14 +426,26 @@ collectDeps l = do
     PackageIndex.lookupSourcePackageId (installedPkgs l) i
 #endif
 
--- | Get the package-level "autogen" directory where we're putting the
--- generated .hs files.  (The 'BuildPaths.autogenModulesDir' file was
--- deprecated in Cabal-2.0 in favor of module-specific directories
--- (@autogenComponentModulesDir@), but our setup currently needs the more
--- global location.)
-autogenModulesDir :: LocalBuildInfo -> FilePath
+-- | All the components that will be built by this Cabal command.
+allComponents :: LocalBuildInfo -> Map.Map ComponentName ComponentLocalBuildInfo
 #if MIN_VERSION_Cabal(2,0,0)
-autogenModulesDir = BuildPaths.autogenPackageModulesDir
+allComponents l = fmap requireOne $ componentNameMap l
+  where
+    -- TODO: this doesn't support Backpack, which can have more than one
+    -- ComponentLocalBuildInfo associated with a name.
+    requireOne [x] = x
+    requireOne xs = error $ "Data.ProtoLens.Setup.allComponents: expected one "
+                          ++ "component per name, got " ++ show xs
+
 #else
-autogenModulesDir = BuildPaths.autogenModulesDir
+allComponents l = Map.fromList [(c, b) | (c, b, _) <- componentsConfigs l]
+#endif
+
+-- | Get the component-level "autogen" directory where we're putting the
+-- generated .hs files.  (For Cabal-1.0, use the shared 'BuildPaths.autogenModulesDir'.)
+autogenComponentModulesDir :: LocalBuildInfo -> ComponentLocalBuildInfo -> FilePath
+#if MIN_VERSION_Cabal(2,0,0)
+autogenComponentModulesDir = BuildPaths.autogenComponentModulesDir
+#else
+autogenComponentModulesDir lbi _ = BuildPaths.autogenModulesDir lbi
 #endif

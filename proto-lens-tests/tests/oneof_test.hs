@@ -2,9 +2,10 @@
 module Main (main) where
 
 import Proto.Oneof
-import Proto.Oneof'Fields
+import Proto.Oneof_Fields
 import Data.ProtoLens
-import Lens.Family2 ((&), (.~), view)
+import Lens.Family2 ((&), (.~), (^?), (%~), view)
+import Lens.Labels.Prism (_Just, (#))
 import Test.Framework.Providers.HUnit (testCase)
 import Test.HUnit
 
@@ -41,6 +42,19 @@ main = testMain
         Just 42 @=? view maybe'baz (defFoo & maybe'bar .~ Just (Foo'Baz 42))
         Nothing @=? view maybe'bippy (defFoo & maybe'bar .~ Just (Foo'Baz 42))
 
+    , testCase "oneof prism accessor" $ do
+        Just 42 @=? (defFoo & baz .~ 42) ^? maybe'bar . _Just . _Foo'Baz
+        Nothing @=? (defFoo & baz .~ 42) ^? maybe'bar . _Just . _Foo'Bippy
+        Just "querty" @=? (defFoo & bippy .~ "querty") ^? maybe'bar . _Just . _Foo'Bippy
+
+    , testCase "oneof prism setter" $ do
+        -- modify an existing value
+        let testFoo = (defFoo & baz .~ 42) & maybe'bar . _Just . _Foo'Baz %~ (+1)
+        Just 43 @=? testFoo ^? maybe'bar . _Just . _Foo'Baz
+        -- test creation methods are equal
+        (defFoo & bippy .~ "querty") @=?
+            (defFoo & maybe'bar .~ (_Just # _Foo'Bippy # "querty"))
+
     , testCase "dupe field names" $
         Just (DupeFieldNames'Baz 42) @=?
             view maybe'bar (def & baz .~ 42 :: DupeFieldNames)
@@ -62,8 +76,12 @@ main = testMain
         trivial (Disambiguated'EnumCon' 42 :: Disambiguated'EnumType')
 
         -- And we don't change the message or enum types and constructors.
-        trivial (Disambiguated'MessageTypeA{} :: Disambiguated'MessageTypeA)
-        trivial (Disambiguated'MessageTypeB{} :: Disambiguated'MessageTypeB)
+        trivial (Disambiguated'MessageTypeA
+                    {_Disambiguated'MessageTypeA'_unknownFields = []}
+                    :: Disambiguated'MessageTypeA)
+        trivial (Disambiguated'MessageTypeB
+                    {_Disambiguated'MessageTypeB'_unknownFields = []}
+                    :: Disambiguated'MessageTypeB)
         trivial (Disambiguated'EnumCon :: Disambiguated'EnumType)
 
     , testCase "not disambiguated names" $ do

@@ -7,6 +7,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 -- | Some utility functions, classes and instances for nicer code generation.
 --
 -- Re-exports simpler versions of the types and constructors from
@@ -33,13 +34,20 @@ import qualified Language.Haskell.Exts.Annotated.Syntax as Syntax
 import qualified Language.Haskell.Exts.Pretty as Pretty
 import Language.Haskell.Exts.SrcLoc (SrcLoc, noLoc)
 #endif
+import Text.PrettyPrint (($+$), (<+>), render, text, vcat, Doc)
 
 #if MIN_VERSION_haskell_src_exts(1,18,0)
 prettyPrint :: Pretty.Pretty a => a -> String
 prettyPrint = Pretty.prettyPrint
+
+prettyPrim :: Pretty.Pretty a => a -> Doc
+prettyPrim = Pretty.prettyPrim
 #else
 prettyPrint :: (Functor m, Pretty.Pretty (m SrcLoc)) => m () -> String
 prettyPrint = Pretty.prettyPrint . fmap (const noLoc)
+
+prettyPrim :: (Functor m, Pretty.Pretty (m SrcLoc)) => m () -> Doc
+prettyPrim = Pretty.prettyPrim . fmap (const noLoc)
 #endif
 
 type Asst = Syntax.Asst ()
@@ -67,34 +75,67 @@ recDecl dataName fields
 type Decl = Syntax.Decl ()
 
 patSynSig :: Name -> Type -> Decl
+#if MIN_VERSION_haskell_src_exts(1,20,0)
+patSynSig n t = Syntax.PatSynSig () [n] Nothing Nothing Nothing t
+#else
 patSynSig n t = Syntax.PatSynSig () n Nothing Nothing Nothing t
+#endif
 
 patSyn :: Pat -> Pat -> Decl
 patSyn p1 p2 = Syntax.PatSyn () p1 p2 Syntax.ImplicitBidirectional
 
-dataDecl :: Name -> [ConDecl] -> [QName] -> Decl
-dataDecl name conDecls derives
-    = Syntax.DataDecl () (Syntax.DataType ()) Nothing
+dataDecl :: Name -> [ConDecl] -> Deriving -> Decl
+dataDecl = dataDeclHelper $ Syntax.DataType ()
+
+newtypeDecl :: Name -> Type -> Deriving -> Decl
+newtypeDecl name wrappedType
+    = dataDeclHelper (Syntax.NewType ()) name
+          [Syntax.ConDecl () name [wrappedType]]
+
+dataDeclHelper :: Syntax.DataOrNew () -> Name -> [ConDecl] -> Deriving -> Decl
+dataDeclHelper dataOrNew name conDecls derives
+    = Syntax.DataDecl () dataOrNew Nothing
         (Syntax.DHead () name)
             [Syntax.QualConDecl () Nothing Nothing q | q <- conDecls]
-        $ Just $ Syntax.Deriving ()
-            [ Syntax.IRule () Nothing Nothing (Syntax.IHCon () c)
-            | c <- derives
-            ]
+#if MIN_VERSION_haskell_src_exts(1,20,0)
+        [derives]
+#else
+        $ Just derives
+#endif
+
+type Deriving = Syntax.Deriving ()
+
+deriving' :: [QName] -> Deriving
+deriving' classes = Syntax.Deriving ()
+#if MIN_VERSION_haskell_src_exts(1,20,0)
+                      Nothing
+#endif
+                      [ Syntax.IRule () Nothing Nothing (Syntax.IHCon () c)
+                      | c <- classes
+                      ]
 
 funBind :: [Match] -> Decl
 funBind = Syntax.FunBind ()
 
-instDecl :: [Asst] -> InstHead -> [[Match]] -> Decl
-instDecl ctx instHead matches
+instType :: Type -> Type -> Syntax.InstDecl ()
+instType = Syntax.InsType ()
+
+instMatch :: [Match] -> Syntax.InstDecl ()
+instMatch m = Syntax.InsDecl () $ funBind m
+
+instDeclWithTypes :: [Asst] -> InstHead -> [Syntax.InstDecl ()] -> Decl
+instDeclWithTypes ctx instHead decls
     = Syntax.InstDecl () Nothing
         (Syntax.IRule () Nothing ctx' instHead)
-        $ Just [Syntax.InsDecl () $ funBind m | m <- matches]
+        $ Just decls
   where
     ctx' = case ctx of
         [] -> Nothing
         [c] -> Just $ Syntax.CxSingle () c
         cs -> Just $ Syntax.CxTuple () cs
+
+instDecl :: [Asst] -> InstHead -> [[Match]] -> Decl
+instDecl ctx instHead = instDeclWithTypes ctx instHead . fmap instMatch
 
 typeSig :: [Name] -> Type -> Decl
 typeSig = Syntax.TypeSig ()
@@ -159,23 +200,41 @@ type Match = Syntax.Match ()
 match :: Name -> [Pat] -> Exp -> Syntax.Match ()
 match n ps e = Syntax.Match () n ps (Syntax.UnGuardedRhs () e) Nothing
 
-type Module = Syntax.Module ()
+-- | A hand-rolled type for modules, which allows comments on top-level
+-- declarations.
+data Module = Module ModuleName (Maybe [ExportSpec]) [ModulePragma]
+                [Syntax.ImportDecl ()]
+                [CommentedDecl]
 
-module' :: ModuleName -> [ModulePragma] -> [Syntax.ImportDecl ()] -> [Decl] -> Module
-module' modName
-    = Syntax.Module ()
-        (Just $ Syntax.ModuleHead () modName
-                    -- no warning text
-                    Nothing
-                    -- no explicit exports; we export everything.
-                    -- TODO: Also export public imports, taking care not to
-                    -- cause a name conflict between field accessors.
-                    Nothing)
+-- | A declaration, along with an optional comment.
+data CommentedDecl = CommentedDecl (Maybe String) Decl
 
-getModuleName :: Module -> Maybe ModuleName
-getModuleName (Syntax.Module _ (Just (Syntax.ModuleHead _ name _ _)) _ _ _)
-    = Just name
-getModuleName _ = Nothing
+uncommented :: Decl -> CommentedDecl
+uncommented = CommentedDecl Nothing
+
+commented :: String -> Decl -> CommentedDecl
+commented = CommentedDecl . Just
+
+prettyPrintModule :: Module -> String
+prettyPrintModule (Module modName exports pragmas imports decls) =
+    render $
+        vcat (map prettyPrim pragmas)
+        $+$ prettyPrim (Syntax.ModuleHead () modName
+                           -- no warning text
+                           Nothing
+                           (Syntax.ExportSpecList () <$> exports))
+        $+$ vcat (map prettyPrim imports)
+        $+$ ""
+        $+$ vcat (map pprintDecl decls)
+  where
+    pprintDecl (CommentedDecl Nothing d) = prettyPrim d
+    pprintDecl (CommentedDecl (Just c) d)
+        = "{- |" <+> text c <+> "-}" $+$ prettyPrim d
+
+type ExportSpec = Syntax.ExportSpec ()
+
+getModuleName :: Module -> ModuleName
+getModuleName (Module name _ _ _ _) = name
 
 type ModuleName = Syntax.ModuleName ()
 type ModulePragma = Syntax.ModulePragma ()
@@ -185,6 +244,26 @@ languagePragma = Syntax.LanguagePragma ()
 
 optionsGhcPragma :: String -> ModulePragma
 optionsGhcPragma = Syntax.OptionsPragma () (Just Syntax.GHC)
+
+exportVar :: QName -> ExportSpec
+exportVar = Syntax.EVar ()
+
+exportAll :: QName -> ExportSpec
+#if MIN_VERSION_haskell_src_exts(1,18,0)
+exportAll q = Syntax.EThingWith () (Syntax.EWildcard () 0) q []
+#else
+exportAll = Syntax.EThingAll ()
+#endif
+
+exportWith :: QName -> [Name] -> ExportSpec
+#if MIN_VERSION_haskell_src_exts(1,18,0)
+exportWith q = Syntax.EThingWith ()
+                    (Syntax.NoWildcard ())
+                    q
+                    . map (Syntax.ConName ())
+#else
+exportWith q = Syntax.EThingWith () q . map (Syntax.ConName ())
+#endif
 
 type Name = Syntax.Name ()
 
@@ -221,8 +300,19 @@ tyCon = Syntax.TyCon ()
 tyList :: Type -> Type
 tyList = Syntax.TyList ()
 
+tyPromotedList :: [Type] -> Type
+tyPromotedList ts = Syntax.TyPromoted () $ Syntax.PromotedList () True ts
+
 tyPromotedString :: String -> Type
 tyPromotedString s = Syntax.TyPromoted () $ Syntax.PromotedString () s s
+
+type Promoted = Syntax.Promoted ()
+
+tyPromotedCon :: Promoted -> Type
+tyPromotedCon = Syntax.TyPromoted ()
+
+instance IsString Promoted where
+    fromString = Syntax.PromotedCon () True . fromString
 
 tyForAll :: [TyVarBind] -> [Asst] -> Type -> Type
 tyForAll vars ctx t = Syntax.TyForall () (Just vars)
@@ -259,7 +349,7 @@ instance IsString Name where
 -- | Whether this character belongs to an Ident (e.g., "foo") or a symbol
 -- (e.g., "<$>").
 isIdentChar :: Char -> Bool
-isIdentChar c = isAlphaNum c || c `elem` "_'"
+isIdentChar c = isAlphaNum c || c `elem` ("_'" :: String)
 
 instance IsString ModuleName where
     fromString = Syntax.ModuleName ()

@@ -1,0 +1,29 @@
+name: person
+
+custom-setup:
+  dependencies:
+    - base
+    - Cabal
+    - proto-lens-protoc
+
+extra-source-files: proto/**/*.proto
+
+library:
+  dependencies:
+    - base
+    - proto-lens-protoc
+
+  exposed-modules:
+    - Proto.Person
+    - Proto.Person_Fields
+
+executables:
+  person:
+    main: Main.hs
+    source-dirs:
+      - src
+    dependencies:
+      - base
+      - person
+      - microlens
+      - proto-lens
