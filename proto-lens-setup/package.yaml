@@ -1,0 +1,30 @@
+name: proto-lens-setup
+version: '0.4.0.0'
+author: Judah Jacobson
+maintainer: proto-lens@googlegroups.com
+github: google/proto-lens/proto-lens-setup
+copyright: Google Inc.
+license: BSD3
+extra-source-files:
+  - Changelog.md
+
+library:
+  source-dirs: src
+  dependencies:
+    - base >= 4.9 && < 4.12
+    - bytestring == 0.10.*
+    - containers == 0.5.*
+    - Cabal >= 1.22 && < 2.3
+    - deepseq == 1.4.*
+    - directory >= 1.2 && < 1.4
+    - filepath >= 1.4 && < 1.6
+    - process >= 1.2 && < 1.7
+    # Depend transitively on the binary.
+    # TODO: once there's sufficient support from Stack and Cabal,
+    # make this a build-tool dependency.
+    - proto-lens-protoc == 0.4.*
+    - temporary == 1.2.*
+    - text == 1.2.*
+  exposed-modules:
+    - Data.ProtoLens.Setup
+

@@ -54,12 +54,16 @@ For example, in `foo-bar-proto.cabal`:
     extra-source-files: src/foo/bar.proto
     ...
     custom-setup
-      setup-depends: base, Cabal, proto-lens-protoc
+      setup-depends: base, Cabal, proto-lens-setup
 
     library
         exposed-modules: Proto.Foo.Bar, Proto.Foo.Bar_Fields
         autogen-modules: Proto.Foo.Bar, Proto.Foo.Bar_Fields
-        build-depends: proto-lens-protoc, ...
+        build-depends: proto-lens-runtime, ...
+
+(**Note:** if you do not have `proto-lens-{runtime/setup}`, you are probably
+using a version earlier than `0.4` and should replace those packages with
+`proto-lens-protoc`.)
 
 Next, write a `Setup.hs` file that uses `Data.ProtoLens.Setup` and specifies the
 directory containing the `.proto` files.  For example:
