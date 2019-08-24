@@ -19,3 +19,8 @@ extra-deps:
 
 ghc-options:
   "$locals": -Wall -Werror
+
+extra-deps:
+- Cabal-3.0.0.0
+
+allow-newer: true
