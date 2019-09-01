@@ -22,5 +22,5 @@ ghc-options:
 
 extra-deps:
 - Cabal-3.0.0.0
-
-allow-newer: true
+- cabal-doctest-1.0.7
+- happy-1.19.11
