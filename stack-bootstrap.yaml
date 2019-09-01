@@ -3,12 +3,11 @@ packages:
 - proto-lens-protoc
 # Build the current HEAD proto-lens-protoc against older revisions of proto-lens
 # and proto-lens-descriptors that are consistent with each other.
-- location:
-    commit: master
-    # To use the github master:
-    git: https://github.com/google/proto-lens
-    # To use the current repository:
-    # git: ../..  # stack runs 'git clone' in a subdirectory
+extra-deps:
+# To use the github master:
+- git: https://github.com/google/proto-lens
+# To use the current repository:
+# - git: ../..  # stack runs 'git clone' in a subdirectory
+  commit: b5802fcf848ac04386f48cdb079fe8c2710e2d40
   subdirs:
   - proto-lens
-  extra-dep: True
