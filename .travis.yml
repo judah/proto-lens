@@ -14,19 +14,17 @@ cache:
 
 matrix:
   include:
-  - env: BUILD=cabal GHCVER=8.0.2 CABALVER=1.24
-    addons: {apt: {packages: [cabal-install-1.24, ghc-8.0.2], sources: [hvr-ghc]}}
   - env: BUILD=cabal GHCVER=8.2.2 CABALVER=2.0
     addons: {apt: {packages: [cabal-install-2.0, ghc-8.2.2], sources: [hvr-ghc]}}
-  - env: BUILD=stack STACK='stack --resolver=lts-8.24'
-    addons: {apt: {packages: [libgmp-dev]}}
-  - env: BUILD=stack STACK='stack --resolver=lts-9.6'
-    addons: {apt: {packages: [libgmp-dev]}}
+  - env: BUILD=cabal GHCVER=8.4.4 CABALVER=2.2.0.1
+    addons: {apt: {packages: [cabal-install-2.2, ghc-8.4.4], sources: [hvr-ghc]}}
+  - env: BUILD=cabal GHCVER=8.6.5 CABALVER=2.4.0.1
+    addons: {apt: {packages: [cabal-install-2.4, ghc-8.6.5], sources: [hvr-ghc]}}
   - env: BUILD=stack STACK=stack --resolver=11.22'
     addons: {apt: {packages: [libgmp-dev]}}
-  - env: BUILD=stack STACK='stack'  # Use the resolver in stack.yaml
+  - env: BUILD=stack STACK=stack --resolver=12.26'
     addons: {apt: {packages: [libgmp-dev]}}
-  - env: BUILD=stack STACK='stack --stack-yaml=stack-ghc-8.6.yaml'
+  - env: BUILD=stack STACK='stack'  # Use the resolver in stack.yaml
     addons: {apt: {packages: [libgmp-dev]}}
 
 before_install:
