@@ -1,4 +1,12 @@
+# Copyright 2019 Google LLC
+#
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file or at
+# https://developers.google.com/open-source/licenses/bsd
+
 resolver: lts-14.4
+compiler: ghc-8.8.1
+
 packages:
 - discrimination-ieee754
 - proto-lens
@@ -15,3 +23,10 @@ packages:
 extra-deps:
 - discrimination-0.4
 - promises-0.3
+- ghc-source-gen-0.2.0.1
+- Cabal-3.0.0.0
+- happy-1.19.12
+- primitive-0.7.0.0
+- regex-base-0.93.2
+
+allow-newer: true
