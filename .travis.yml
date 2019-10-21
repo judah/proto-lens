@@ -14,20 +14,22 @@ cache:
 
 matrix:
   include:
-  - env: BUILD=cabal GHCVER=8.2.2 CABALVER=2.0
-    addons: {apt: {packages: [cabal-install-2.0, ghc-8.2.2], sources: [hvr-ghc]}}
-  - env: BUILD=cabal GHCVER=8.4.4 CABALVER=2.2
-    addons: {apt: {packages: [cabal-install-2.2, ghc-8.4.4], sources: [hvr-ghc]}}
+  #- env: BUILD=cabal GHCVER=8.2.2 CABALVER=2.0
+  #  addons: {apt: {packages: [cabal-install-2.0, ghc-8.2.2], sources: [hvr-ghc]}}
+  #- env: BUILD=cabal GHCVER=8.4.4 CABALVER=2.2
+  #  addons: {apt: {packages: [cabal-install-2.2, ghc-8.4.4], sources: [hvr-ghc]}}
   - env: BUILD=cabal GHCVER=8.6.5 CABALVER=2.4
     addons: {apt: {packages: [cabal-install-2.4, ghc-8.6.5], sources: [hvr-ghc]}}
-  - env: BUILD=stack STACK='stack --resolver=lts-11.22'
-    addons: {apt: {packages: [libgmp-dev]}}
-  - env: BUILD=stack STACK='stack --resolver=lts-12.26'
-    addons: {apt: {packages: [libgmp-dev]}}
+  - env: BUILD=cabal-new GHCVER=8.6.5 CABALVER=2.4
+    addons: {apt: {packages: [cabal-install-2.4, ghc-8.6.5], sources: [hvr-ghc]}}
+  #- env: BUILD=stack STACK='stack --resolver=lts-11.22'
+  #  addons: {apt: {packages: [libgmp-dev]}}
+  #- env: BUILD=stack STACK='stack --resolver=lts-12.26'
+  #  addons: {apt: {packages: [libgmp-dev]}}
   - env: BUILD=stack STACK='stack'  # Use the resolver in stack.yaml
     addons: {apt: {packages: [libgmp-dev]}}
-  - env: BUILD=stack STACK='stack --stack-yaml=stack-nightly.yaml'
-    addons: {apt: {packages: [libgmp-dev]}}
+  #- env: BUILD=stack STACK='stack --stack-yaml=stack-nightly.yaml'
+  #  addons: {apt: {packages: [libgmp-dev]}}
 
 before_install:
   - mkdir -p $HOME/.local/bin
@@ -66,4 +68,7 @@ script:
         (cd proto-lens-tutorial && $STACK build "${STACK_ARGS[@]}");;
       cabal)
         ./travis-cabal.sh;;
+      cabal-new)
+        cp -R proto-lens-tests-dep/protos/ proto-lens-tests/tests/;
+        cabal new-test all;;
     esac
